@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Estado"
+            android:layout_marginEnd="@dimen/button_padding_middle">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textViewEstado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="#CCFFFFFF"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:enabled="false"
+                style="@style/Widget.Material3.TextInputEditText.OutlinedBox.Dense"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Ciudad">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textViewCiudad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="#CCFFFFFF"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:enabled="false"
+                style="@style/Widget.Material3.TextInputEditText.OutlinedBox.Dense"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Colonia"
+            android:layout_marginEnd="@dimen/button_padding_middle">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textViewColonia"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="#CCFFFFFF"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:enabled="false"
+                style="@style/Widget.Material3.TextInputEditText.OutlinedBox.Dense"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Codigo Postal">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textViewCodigoPostal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="#CCFFFFFF"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:enabled="false"
+                style="@style/Widget.Material3.TextInputEditText.OutlinedBox.Dense"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Calle"
+            android:layout_marginEnd="@dimen/button_padding_middle">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textViewCalle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="#CCFFFFFF"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:enabled="false"
+                style="@style/Widget.Material3.TextInputEditText.OutlinedBox.Dense"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Numero">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/textViewNumero"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:background="#CCFFFFFF"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:enabled="false"
+                style="@style/Widget.Material3.TextInputEditText.OutlinedBox.Dense"/>
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+</LinearLayout>
