@@ -40,13 +40,14 @@
  import com.here.sdk.core.Metadata;
  import com.here.sdk.core.Point2D;
  import com.here.sdk.core.errors.InstantiationErrorException;
- import com.here.sdk.mapviewlite.Camera;
- import com.here.sdk.mapviewlite.CameraObserver;
- import com.here.sdk.mapviewlite.CameraUpdate;
- import com.here.sdk.mapviewlite.MapCircle;
- import com.here.sdk.mapviewlite.MapCircleStyle;
- import com.here.sdk.mapviewlite.MapViewLite;
- import com.here.sdk.mapviewlite.PixelFormat;
+ import com.here.sdk.mapview.MapCamera;
+ //import com.here.sdk.mapview.CameraObserver;
+ import com.here.sdk.mapview.MapCameraListener;
+ import com.here.sdk.mapview.MapCameraUpdate;
+ //import com.here.sdk.mapview.MapCircle;
+ //import com.here.sdk.mapview.MapCircleStyle;
+ import com.here.sdk.mapview.MapView;
+ //import com.here.sdk.mapview.PixelFormat;
  import com.hackaprende.myheremapssdk.R;
  import com.here.sdk.search.Place;
  import com.here.sdk.search.SearchCallback;
@@ -68,15 +69,15 @@
     // Definimos la variable context
      private Context context;
      // Definimos la variable mapView
-     private MapViewLite mapView;
+     private MapView mapView;
      // Definimos la variable camera
-     private Camera camera;
+     private MapCamera camera;
      // Definimos la variable cameraAnimator
-     private CameraAnimator cameraAnimator;
+     //private CameraAnimator cameraAnimator;
      // Definimos la variable cameraTargetView
      private ImageView cameraTargetView;
      // Definimos la variable poiMapCircle
-     private MapCircle poiMapCircle;
+     //private MapCircle poiMapCircle;
      // Definimos la variable searchExample
      private SearchExample searchExample;
      // Definimos la variable searchEngine
@@ -89,7 +90,7 @@
      private TextInputEditText textViewCalle;
      private TextInputEditText textViewNumero;
 
-     public CameraExample(Context context, MapViewLite mapView,SearchExample searchExample) {
+     public CameraExample(Context context, MapView mapView,SearchExample searchExample) {
          // Generamos una Activity mediante el contexto
          Activity activity = (Activity) context;
          // Asignamos los valores a las variables
@@ -105,9 +106,9 @@
              throw new RuntimeException("Initialization of SearchEngine failed: " + e.error.name());
          }
          // Inicializamos el objeto CameraAnimator
-         cameraAnimator = new CameraAnimator(camera);
+         //cameraAnimator = new CameraAnimator(camera);
          // Establecemos el listener para la animación
-         cameraAnimator.setTimeInterpolator(new AccelerateDecelerateInterpolator());
+         //cameraAnimator.setTimeInterpolator(new AccelerateDecelerateInterpolator());
          // Asignamos cada uno de los componentes con sus respectivas variables de la clase
          textViewEstado = activity.findViewById(R.id.textViewEstado);
          textViewCiudad = activity.findViewById(R.id.textViewCiudad);
@@ -118,17 +119,17 @@
          cameraTargetView = activity.findViewById(R.id.cameraTargetDot);
 
          // The POI MapCircle (green) indicates the next location to move to.
-         updatePoiCircle(getRandomGeoCoordinates());
+         //updatePoiCircle(getRandomGeoCoordinates());
 
          //addCameraObserver();
          //setTapGestureHandler(mapView);
      }
 
-     private final CameraObserver cameraObserver = new CameraObserver() {
+     private final MapCameraListener cameraObserver = new MapCameraListener() {
          @Override
-         public void onCameraUpdated(@NonNull CameraUpdate cameraUpdate) {
+         public void onMapCameraUpdated(@NonNull MapCamera.State state) {
              // Obtenemos la nueva ubicación del mapa
-             GeoCoordinates camTarget = cameraUpdate.target;
+             GeoCoordinates camTarget = state.targetCoordinates;
 
              // Creamos las opciones de búsqueda para la ubicación inversa
              SearchOptions reverseGeocodingOptions = new SearchOptions();
@@ -180,6 +181,7 @@
                  }
              });
          }
+
      };
 
      /*public void rotateButtonClicked() {
@@ -190,34 +192,34 @@
          tiltMap(5);
      }*/
 
-     public void moveToXYButtonClicked() {
+     /*public void moveToXYButtonClicked() {
          // Obtenemos una nueva ubicación aleatoria.
          GeoCoordinates geoCoordinates = getRandomGeoCoordinates();
          // Movemos el mapa a la nueva ubicación.
-         updatePoiCircle(geoCoordinates);
+         //updatePoiCircle(geoCoordinates);
          // Establecemos el nuevo transform center.
-         cameraAnimator.moveTo(geoCoordinates, DEFAULT_ZOOM_LEVEL);
-     }
+         //cameraAnimator.moveTo(geoCoordinates, DEFAULT_ZOOM_LEVEL);
+     }*/
 
      // Rotate the map by x degrees. Tip: Try to see what happens for negative values.
-     private void rotateMap(int bearingStepInDegrees) {
+     /*private void rotateMap(int bearingStepInDegrees) {
          // Get the current bearing.
          double currentBearing = camera.getBearing();
          // Calculate the new bearing.
          double newBearing = currentBearing + bearingStepInDegrees;
          //By default, bearing will be clamped to the range (0, 360].
          camera.setBearing(newBearing);
-     }
+     }*/
 
      // Tilt the map by x degrees.
-     private void tiltMap(int tiltStepInDegrees) {
+     /*private void tiltMap(int tiltStepInDegrees) {
          // Get the current tilt.
          double currentTilt = camera.getTilt();
          // Calculate the new tilt.
          double newTilt = currentTilt + tiltStepInDegrees;
          //By default, tilt will be clamped to the range [0, 70].
          camera.setTilt(newTilt);
-     }
+     }*/
      public void setTapGestureHandler() {
          mapView.getGestures().setTapListener(this::setTransformCenter);
      }
@@ -237,12 +239,12 @@
          double normalizedY = (1F / mapView.getHeight()) * mapViewPoint.y;
          // Set the new transform center.
          Anchor2D transformationCenter = new Anchor2D(normalizedX, normalizedY);
-         camera.setTargetAnchorPoint(transformationCenter);
+         //camera.setTargetAnchorPoint(transformationCenter);
          // Reposition view on screen to indicate the new target.
          cameraTargetView.setX((float) mapViewPoint.x - cameraTargetView.getWidth() / 2);
          cameraTargetView.setY((float) mapViewPoint.y - cameraTargetView.getHeight() / 2);
          // Obtener las coordenadas geográficas del punto.
-         /*GeoCoordinates geoCoordinates = mapView.getCamera().viewToGeoCoordinates(mapViewPoint);
+         GeoCoordinates geoCoordinates = mapView.viewToGeoCoordinates(mapViewPoint);
          // Creamos la opciones de búsqueda para la ubicación inversa.
          SearchOptions reverseGeocodingOptions = new SearchOptions();
          // Establecemos el idioma de la búsqueda.
@@ -266,19 +268,19 @@
                  }
                  // If error is null, list is guaranteed to be not empty.
                  // Obtener los datos de la ubicación inversa
-                 *//*String estado = list.get(0).getAddress().state;
+                 String estado = list.get(0).getAddress().state;
                  String ciudad = list.get(0).getAddress().city;
                  String colonia = list.get(0).getAddress().district;
                  String codigo_postal = list.get(0).getAddress().postalCode;
                  String calle = list.get(0).getAddress().street;
                  String numero = list.get(0).getAddress().houseNumOrName;
                  // Mostrar los datos en un diálogo
-                 showAddressDialog(estado, ciudad, colonia, codigo_postal, calle, numero);*//*
+                 showAddressDialog(estado, ciudad, colonia, codigo_postal, calle, numero);
              }
-         });*/
+         });
      }
 
-     private void updatePoiCircle(GeoCoordinates geoCoordinates) {
+     /*private void updatePoiCircle(GeoCoordinates geoCoordinates) {
          // Verificamos si ya existe un MapCircle en el mapa
          if (poiMapCircle != null) {
              // Si existe, lo eliminamos del mapa
@@ -288,9 +290,9 @@
          poiMapCircle = createMapCircle(geoCoordinates, 0x00FF00A0, 80d, 1000);
          // Añadimos el MapCircle al mapa
          mapView.getMapScene().addMapCircle(poiMapCircle);
-     }
+     }*/
 
-     private MapCircle createMapCircle(GeoCoordinates geoCoordinates,
+     /*private MapCircle createMapCircle(GeoCoordinates geoCoordinates,
                                        long color, double radiusInMeters, long drawOrder) {
          // Creamos un GeoCircle
          GeoCircle geoCircle = new GeoCircle(geoCoordinates, radiusInMeters);
@@ -302,14 +304,14 @@
          mapCircleStyle.setDrawOrder(drawOrder);
          // Creamos y devolvemos el MapCircle
          return new MapCircle(geoCircle, mapCircleStyle);
-     }
+     }*/
 
      public void addCameraObserver() {
          // Add the observer to the camera.
-         mapView.getCamera().addObserver(cameraObserver);
+         mapView.getCamera().addListener(cameraObserver);
      }
 
-     private GeoCoordinates getRandomGeoCoordinates() {
+     /*private GeoCoordinates getRandomGeoCoordinates() {
          // Get the current target of the camera.
          GeoCoordinates currentTarget = camera.getTarget();
          // Add a random amount to the current target.
@@ -319,7 +321,7 @@
          double longitude = getRandom(currentTarget.longitude - amount, currentTarget.longitude + amount);
          // Return the new GeoCoordinates.
          return new GeoCoordinates(latitude, longitude);
-     }
+     }*/
 
      private double getRandom(double min, double max) {
          // Return a random double between min and max.
@@ -362,6 +364,6 @@
      }
      public void removeCameraObserver() {
          // Remove the observer from the camera.
-         mapView.getCamera().removeObserver(cameraObserver);
+         mapView.getCamera().removeListener(cameraObserver);
      }
  }

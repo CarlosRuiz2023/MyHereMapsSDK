@@ -34,8 +34,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -49,21 +51,29 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.hackaprende.myheremapssdk.clases.CameraExample;
 import com.hackaprende.myheremapssdk.clases.MapObjectsExample;
-import com.hackaprende.myheremapssdk.clases.SearchExample;
 import com.hackaprende.myheremapssdk.clases.TrafficExample;
+import com.hackaprende.myheremapssdk.clases.SearchExample;
 import com.hackaprende.myheremapssdk.interfaces.ReverseGeocodingCallback;
 import com.hackaprende.myheremapssdk.permisos.PermissionsRequestor;
 import com.here.sdk.core.GeoCoordinates;
+import com.here.sdk.core.GeoCoordinatesUpdate;
+import com.here.sdk.core.GeoOrientation;
+import com.here.sdk.core.GeoOrientationUpdate;
 import com.here.sdk.core.Point2D;
 import com.here.sdk.core.engine.SDKBuildInformation;
 import com.here.sdk.core.engine.SDKNativeEngine;
 import com.here.sdk.core.engine.SDKOptions;
 import com.here.sdk.core.errors.InstantiationErrorException;
-import com.here.sdk.mapviewlite.Camera;
-import com.here.sdk.mapviewlite.MapScene;
-import com.here.sdk.mapviewlite.MapStyle;
-import com.here.sdk.mapviewlite.MapViewLite;
+import com.here.sdk.mapview.MapCamera;
+import com.here.sdk.mapview.MapCameraAnimation;
+import com.here.sdk.mapview.MapCameraAnimationFactory;
+import com.here.sdk.mapview.MapError;
+import com.here.sdk.mapview.MapMeasure;
+import com.here.sdk.mapview.MapScene;
+import com.here.sdk.mapview.MapScheme;
+import com.here.sdk.mapview.MapView;
 import com.hackaprende.myheremapssdk.clases.RoutingExample;
+import com.here.time.Duration;
 
 public class MainActivity extends AppCompatActivity{
 
@@ -78,11 +88,11 @@ public class MainActivity extends AppCompatActivity{
     // INICIALIZACION DE LA VARIABLE TIPO PermissionsRequestor PARA CONTROLAR LOS PERMISOS
     private PermissionsRequestor permissionsRequestor;
     // INICIALIZACION DE LA VARIABLE TIPO MapViewLite PARA EL MAPA
-    private MapViewLite mapView;
-    // INICIALIZACION DE LA VARIABLE TIPO MapStyle PARA EL ESTILO DEL MAPA POR DEFECTO
-    private MapStyle style = MapStyle.NORMAL_DAY;
+    private MapView mapView;
+    // INICIALIZACION DE LA VARIABLE TIPO MapScheme PARA EL ESTILO DEL MAPA POR DEFECTO
+    private MapScheme style = MapScheme.NORMAL_DAY;
     // INICIALIZACION DE LA VARIABLE TIPO Camera PARA EL CONTROL DE LA CAMARA
-    private Camera camara;
+    private MapCamera camara;
     // INICIALIZACION DE LAS VARIABLES TIPO TextInputEditText PARA EL BUSCADOR DE DIRECCIONES
     private TextInputEditText searchEditText;
     // INICIALIZACION DE LAS VARIABLES TIPO TextInputEditText PARA EL ENRUTADOR DE DIRECCIONES
@@ -94,6 +104,8 @@ public class MainActivity extends AppCompatActivity{
     private LinearLayout searchLayout;
     // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout PARA EL CONTROL DE RUTAS
     private LinearLayout routeLayout;
+    // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout PARA EL CONTROL DE RUTAS
+    private LinearLayout navigatorLayout;
     // INICIALIZACION DE LAS VARIABLES TIPO MaterialButton PARA EL CONTROL DEL BUSCADOR
     private MaterialButton btnSearch;
     // INICIALIZACION DE LAS VARIABLES TIPO MaterialButton PARA EL CONTROL DE DIBUJAR
@@ -107,7 +119,6 @@ public class MainActivity extends AppCompatActivity{
     private LinearLayout datos;
     // INICIALIZACION DE LA VARIABLE TIPO LinearLayout PARA EL CONTROL DEL PUNTERO
     private LinearLayout llCameraTargetDot;
-
     // DEFINE UNA VARIABLE TIPO BOOLEAN PARA CONTROLAR SI ES LA PRIMERA HUBICACION DEL USUARIO
     private boolean isFirstLocationUpdate = true;
     // DEFINE UNA VARIABLE TIPO BOOLEAN PARA CONTROLAR EL ESTADO DE LA TRAMITE
@@ -134,10 +145,14 @@ public class MainActivity extends AppCompatActivity{
         mapView.onCreate(savedInstanceState);
         // TOMAMOS LA CAMARA ACTUAL DEL MAPA
         camara = mapView.getCamera();
-        // LA POSICIONAMOS A CIERTAS COORDENADAS
-        camara.setTarget(new GeoCoordinates(21.09914, -101.57485));
         // SELECCIONAMOS EL ZOOM
-        camara.setZoomLevel(3);
+        double distanceInMeters = 7000000;
+        MapMeasure mapMeasureZoom = new MapMeasure(MapMeasure.Kind.DISTANCE, distanceInMeters);
+        // LA POSICIONAMOS A CIERTAS COORDENADAS
+        camara.lookAt(new GeoCoordinates(21.09914, -101.57485), mapMeasureZoom);
+        /* Asi se hacia anteriormente en el Lite
+        camara.setTarget(new GeoCoordinates(21.09914, -101.57485));
+        camara.setZoomLevel(3);*/
         // ASOCIAMOS VARIOS DE LOS COMPONENTES DE LA VISTA AL CONTROLADOR MEDIANTE SU ID
         searchEditText = findViewById(R.id.searchEditText);
         direccion1 = findViewById(R.id.direccion1);
@@ -152,6 +167,7 @@ public class MainActivity extends AppCompatActivity{
         btnSearch = findViewById(R.id.btnSearch);
         btnDraw = findViewById(R.id.btnDraw);
         tilsearch = findViewById(R.id.tilsearch);
+        navigatorLayout = findViewById(R.id.navigatorLayout);
         // ASIGNAMOS FUNCIONAMIENTO EN CASO DE TOCAR EL ICONO DEL TextInputLayout DE LA DIRECCION 1
         tildireccion1.setEndIconOnClickListener(view1->{
             try {
@@ -277,6 +293,7 @@ public class MainActivity extends AppCompatActivity{
                         // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DE LA BUSQUEDA
                         btnSearch.setVisibility(View.VISIBLE);
                         searchLayout.setVisibility(View.VISIBLE);
+                        navigatorLayout.setVisibility(View.GONE);
                         break;
                     case "Enrutar":
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
@@ -287,8 +304,12 @@ public class MainActivity extends AppCompatActivity{
                         searchLayout.setVisibility(View.GONE);
                         datos.setVisibility(View.GONE);
                         llCameraTargetDot.setVisibility(View.GONE);
-                        // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DE LA RUTA
-                        routeLayout.setVisibility(View.VISIBLE);
+                        if(routingExample.getRoute()!=null){
+                            navigatorLayout.setVisibility(View.VISIBLE);
+                        }else{
+                            // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DE LA RUTA
+                            routeLayout.setVisibility(View.VISIBLE);
+                        }
                         break;
                     case "Dibujar":
                         // CAMBIAMOS EL COMENTARIO DEL TextInputLayout DEL CIRCULO
@@ -307,6 +328,7 @@ public class MainActivity extends AppCompatActivity{
                         // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DEL CIRCULO
                         btnDraw.setVisibility(View.VISIBLE);
                         searchLayout.setVisibility(View.VISIBLE);
+                        navigatorLayout.setVisibility(View.GONE);
                         break;
                     case "Puntero":
                         // ESCONDEMOS ALGUNOS COMPONENTES
@@ -318,6 +340,7 @@ public class MainActivity extends AppCompatActivity{
                         // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DEL PUNTERO
                         llCameraTargetDot.setVisibility(View.VISIBLE);
                         datos.setVisibility(View.VISIBLE);
+                        navigatorLayout.setVisibility(View.GONE);
                         break;
                 }
                 return true;
@@ -325,12 +348,6 @@ public class MainActivity extends AppCompatActivity{
         });
         // VERIFICAMOS LOS PERMISOS
         handleAndroidPermissions();
-    }
-
-    // FUNCIONAMIENTO DE LOS BOTONES
-    public void moveToXYButtonClicked(View view) {
-        // Llama al método moveToXYButtonClicked de la instancia de cameraExample
-        cameraExample.moveToXYButtonClicked();
     }
 
     // FUNCION QUE INICIALIZA EL SDK DE HERE
@@ -372,7 +389,7 @@ public class MainActivity extends AppCompatActivity{
                 @Override
                 public void permissionsDenied() {
                     // Show a dialog to explain why the permissions are needed
-                    showPermissionDeniedDialog();
+                    //showPermissionDeniedDialog();
                     Log.e(TAG, "Permissions denied by user.");
                 }
             });
@@ -389,15 +406,15 @@ public class MainActivity extends AppCompatActivity{
     // FUNCION QUE CARGA EL MAPA
     private void loadMapScene() {
         // Load a scene from the SDK to render the map with a map style.
-        mapView.getMapScene().loadScene(MapStyle.NORMAL_DAY, new MapScene.LoadSceneCallback() {
+        mapView.getMapScene().loadScene(MapScheme.NORMAL_DAY, new MapScene.LoadSceneCallback() {
             @Override
-            public void onLoadScene(@Nullable MapScene.ErrorCode errorCode) {
+            public void onLoadScene(@Nullable MapError errorCode) {
                 // Check for errors
                 if (errorCode == null) {
                     // INICIALIZAMOS CADA UNA DE LAS INSTANCIAS NECESARIAS DEL APLICATIVO
                     searchExample = new SearchExample(MainActivity.this, mapView);
                     routingExample = new RoutingExample(MainActivity.this, mapView,searchExample);
-                    mapObjectsExample = new MapObjectsExample(mapView,MainActivity.this);
+                    mapObjectsExample = new MapObjectsExample(mapView);
                     trafficExample = new TrafficExample(MainActivity.this, mapView);
                     cameraExample = new CameraExample(MainActivity.this, mapView,searchExample);
                 } else {
@@ -430,7 +447,8 @@ public class MainActivity extends AppCompatActivity{
                     // LIMPIAMOS EL MAPA
                     mapObjectsExample.clearMap();
                     // CREAMOS EL CIRCULO MANDANDO EL GEO COORDINATES Y EL RADIO
-                    mapObjectsExample.showMapCircle(geoCoordinates, radius);
+                    //mapObjectsExample.showMapCircle(geoCoordinates, radius);
+                    mapObjectsExample.showMapCircle(geoCoordinates,radius);
                 }else{
                     // MANDAMOS UN MENSAJE DE ERROR
                     Toast.makeText(this, "El radio debe ser menor a 50000 m.", Toast.LENGTH_SHORT).show();
@@ -470,16 +488,23 @@ public class MainActivity extends AppCompatActivity{
         searchExample.clearAll();
         mapObjectsExample.clearMap();
         routingExample.clearMap();
+        navigatorLayout.setVisibility(View.GONE);
+        Menu menu = bottomNavigation.getMenu();
+        MenuItem menuItem = menu.findItem(bottomNavigation.getSelectedItemId());
+        String itemName = menuItem.getTitle().toString();
+        if(itemName.equalsIgnoreCase("Enrutar")){
+            routeLayout.setVisibility(View.VISIBLE);
+        }
         // LIMPIAMOS LOS TEXTOS DE LOS TextInputEditText
         searchEditText.setText("");
         direccion1.setText("");
         direccion2.setText("");
-        // CAMBIAMOS LA POSICION DE LA CAMARA
-        camara.setTarget(new GeoCoordinates(21.09914, -101.57485));
-        // CAMBIAMOS EL ZOOM
-        camara.setZoomLevel(3);
-        // Restaurar la orientación a la posición predeterminada (norte arriba)
-        camara.setBearing(0);
+        // RESTABLECEMOS LA POSICION DE LA CAMARA
+        double distanceInMeters = 7000000;
+        MapMeasure mapMeasureZoom = new MapMeasure(MapMeasure.Kind.DISTANCE, distanceInMeters);
+        // LA POSICIONAMOS A CIERTAS COORDENADAS
+        camara.lookAt(new GeoCoordinates(21.09914, -101.57485), mapMeasureZoom);
+        camara.setOrientationAtTarget(new GeoOrientationUpdate(new GeoOrientation(0.0,0.0)));
         // RESTAURAMOS LAS VARIABLES GLOBALES DE LA CLASE
         isFirstLocationUpdate = true;
         isActiveTraffic = false;
@@ -513,13 +538,6 @@ public class MainActivity extends AppCompatActivity{
         super.onDestroy();
     }
 
-    // FUNCION IMPLEMENTADA POR LA CLASE AppCompatActivity
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        // GUARDAMOS EL ESTADO DEL MAPA
-        mapView.onSaveInstanceState();
-        super.onSaveInstanceState(outState);
-    }
     // FUNCION QUE DESTRUYE EL SDK DE HERE
     private void disposeHERESDK() {
         // Free HERE SDK resources before the application shuts down.
@@ -541,7 +559,7 @@ public class MainActivity extends AppCompatActivity{
         // Calcula el punto central del MapView
         Point2D centerPoint = new Point2D(mapViewWidth / 2.0, mapViewHeight / 2.0);
         // Convierte el punto de la vista a coordenadas geográficas
-        return mapView.getCamera().viewToGeoCoordinates(centerPoint);
+        return mapView.getCamera().getState().targetCoordinates;
     }
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DE CAMBIAR ESTILO
     public void changeStyle(View view) {
@@ -559,24 +577,24 @@ public class MainActivity extends AppCompatActivity{
         // AUMENTAMOS EL CONTADOR DE ESTILOS
         styleCounter++;
         // VERIFICAMOS EL CONTADOR DE ESTILOS NO SALGA DEL RANGO
-        if(styleCounter==3)styleCounter=0;
+        if(styleCounter==4)styleCounter=0;
         // VALIDAMOS POR EL CONTADOR DE ESTILOS
         switch (styleCounter) {
             case 0:
                 // CAMBIAMOS EL ESTILO
-                style = MapStyle.NORMAL_DAY;
+                style = MapScheme.NORMAL_DAY;
                 break;
             case 1:
                 // CAMBIAMOS EL ESTILO
-                style = MapStyle.HYBRID_DAY;
+                style = MapScheme.NORMAL_NIGHT;
                 break;
             case 2:
                 // CAMBIAMOS EL ESTILO
-                style = MapStyle.SATELLITE;
+                style = MapScheme.HYBRID_DAY;
                 break;
             case 3:
                 // CAMBIAMOS EL ESTILO A NULO
-                style = null;
+                style = MapScheme.SATELLITE;
                 break;
         }
         // VERIFICAMOS SI EL ESTYLO ES NULO
@@ -584,7 +602,7 @@ public class MainActivity extends AppCompatActivity{
             // CARGAMOS EL ESTILO POR DEFECTO
             mapView.getMapScene().loadScene(""+filename, new MapScene.LoadSceneCallback() {
                 @Override
-                public void onLoadScene(@Nullable MapScene.ErrorCode errorCode) {
+                public void onLoadScene(@Nullable MapError errorCode) {
                     if (errorCode == null) {
                     } else {
                         // Style loading failed
@@ -595,7 +613,7 @@ public class MainActivity extends AppCompatActivity{
             // CARGAMOS ALGUNO DE LOS ESTILOS PREDETERMINADOS DE LA SDK
             mapView.getMapScene().loadScene(style, new MapScene.LoadSceneCallback() {
                 @Override
-                public void onLoadScene(@Nullable MapScene.ErrorCode errorCode) {
+                public void onLoadScene(@Nullable MapError errorCode) {
                     if (errorCode == null) {
                         // VERIFICAMOS SI ESTA ACTIVADO EL TRAFICO
                         if(isActiveTraffic) {
@@ -643,9 +661,9 @@ public class MainActivity extends AppCompatActivity{
                         // Solo actualiza la cámara en la primera actualización de ubicación
                         if (isFirstLocationUpdate) {
                             // Establece la nueva posición de la cámara
-                            camara.setTarget(geoCoordinates);
+                            camara.lookAt(geoCoordinates);
                             // Zoom a nivel 13
-                            animateZoom(13.0);
+                            flyTo(geoCoordinates);
                             // ACTUALIZA EL ESTATUS DE LA PRIMERA LOCALIZACION
                             isFirstLocationUpdate = false;
                         }
@@ -686,7 +704,7 @@ public class MainActivity extends AppCompatActivity{
     // Método para animar el zoom suavemente
     private void animateZoom(double targetZoomLevel) {
         // Obtiene el nivel de zoom actual del
-        double currentZoomLevel = camara.getZoomLevel();
+        double currentZoomLevel = camara.getState().zoomLevel;
         // Crea un valor
         ValueAnimator animator = ValueAnimator.ofFloat((float) currentZoomLevel, (float) targetZoomLevel);
         // Establece la duración de la animación en milisegundos
@@ -698,10 +716,18 @@ public class MainActivity extends AppCompatActivity{
                 // Obtiene el valor actual de la animación
                 float animatedValue = (float) valueAnimator.getAnimatedValue();
                 // Establece el nuevo nivel de zoom
-                camara.setZoomLevel(animatedValue);
+                camara.setDistanceToTarget(animatedValue);
             }
         });
         // Inicia la animación
         animator.start();
+    }
+    private void flyTo(GeoCoordinates geoCoordinates) {
+        GeoCoordinatesUpdate geoCoordinatesUpdate = new GeoCoordinatesUpdate(geoCoordinates);
+        MapMeasure mapMeasureZoom = new MapMeasure(MapMeasure.Kind.DISTANCE, 1000.0);
+        double bowFactor = 1;
+        MapCameraAnimation animation = MapCameraAnimationFactory.flyTo(
+                geoCoordinatesUpdate, mapMeasureZoom, bowFactor, Duration.ofSeconds(3));
+        camara.startAnimation(animation);
     }
 }

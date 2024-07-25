@@ -24,7 +24,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -32,30 +36,45 @@ import androidx.annotation.Nullable;
 
 import com.hackaprende.myheremapssdk.interfaces.GeoCoordinatesCallback;
 import com.hackaprende.myheremapssdk.R;
+import com.here.sdk.core.Color;
 import com.here.sdk.core.CustomMetadataValue;
 import com.here.sdk.core.GeoBox;
 import com.here.sdk.core.GeoCoordinates;
+import com.here.sdk.core.GeoOrientationUpdate;
 import com.here.sdk.core.GeoPolyline;
 import com.here.sdk.core.LanguageCode;
+import com.here.sdk.core.LocationListener;
 import com.here.sdk.core.Metadata;
 import com.here.sdk.core.errors.InstantiationErrorException;
-import com.here.sdk.mapviewlite.Camera;
-import com.here.sdk.mapviewlite.MapImage;
-import com.here.sdk.mapviewlite.MapImageFactory;
-import com.here.sdk.mapviewlite.MapMarker;
-import com.here.sdk.mapviewlite.MapMarkerImageStyle;
-import com.here.sdk.mapviewlite.MapPolyline;
-import com.here.sdk.mapviewlite.MapPolylineStyle;
-import com.here.sdk.mapviewlite.MapViewLite;
-import com.here.sdk.mapviewlite.PixelFormat;
+import com.here.sdk.mapview.LineCap;
+import com.here.sdk.mapview.MapCamera;
+import com.here.sdk.mapview.MapImage;
+import com.here.sdk.mapview.MapImageFactory;
+import com.here.sdk.mapview.MapMarker;
+import com.here.sdk.mapview.MapMeasureDependentRenderSize;
+import com.here.sdk.mapview.MapPolyline;
+import com.here.sdk.mapview.MapView;
+import com.here.sdk.mapview.RenderSize;
+import com.here.sdk.navigation.EventText;
+import com.here.sdk.navigation.EventTextListener;
+import com.here.sdk.navigation.LocationSimulator;
+import com.here.sdk.navigation.LocationSimulatorOptions;
+import com.here.sdk.navigation.VisualNavigator;
 import com.here.sdk.routing.CalculateRouteCallback;
 import com.here.sdk.routing.CarOptions;
 import com.here.sdk.routing.Maneuver;
 import com.here.sdk.routing.ManeuverAction;
+import com.here.sdk.routing.PaymentMethod;
 import com.here.sdk.routing.Route;
+import com.here.sdk.routing.RouteRailwayCrossing;
 import com.here.sdk.routing.RoutingEngine;
 import com.here.sdk.routing.RoutingError;
 import com.here.sdk.routing.Section;
+import com.here.sdk.routing.SectionNotice;
+import com.here.sdk.routing.Span;
+import com.here.sdk.routing.Toll;
+import com.here.sdk.routing.TollFare;
+import com.here.sdk.routing.TrafficSpeed;
 import com.here.sdk.routing.Waypoint;
 import com.here.sdk.search.Place;
 import com.here.sdk.search.SearchCallback;
@@ -65,6 +84,8 @@ import com.here.sdk.search.SearchOptions;
 import com.here.sdk.search.TextQuery;
 
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -76,7 +97,7 @@ public class RoutingExample {
     // Definición del contexto
     private Context context;
     // Definición de la vista del mapa
-    private MapViewLite mapView;
+    private MapView mapView;
     // Definición de la lista de marcadores de mapa
     private final List<MapMarker> mapMarkerList = new ArrayList<>();
     // Definición de la lista de polilíneas de mapa
@@ -89,16 +110,24 @@ public class RoutingExample {
     // Definición de los widgets de entrada de texto
     EditText direccion1;
     EditText direccion2;
+    LinearLayout navigatorLayout, routeLayout;
+    Route route;
     // Definición del motor de búsqueda
     private SearchEngine searchEngine;
+    private LocationSimulator locationSimulator;
+    private VisualNavigator visualNavigator;
     // Definición de la clase SearchExample
     private SearchExample searchExample;
+    private NavigationExample navigationExample;
     // Definición de la cámara del mapa
-    private final Camera camara;
+    private final MapCamera camara;
     // Define la duración de la animación de zoom en milisegundos
     final long zoomAnimationDuration = 1000L;
+    private TextView messageView;
+    private boolean isCameraTrackingEnabled = true;
+    private Button releaseCameraButton, stopSimulationButton;
     // Constructor de la clase
-    public RoutingExample(Context context, MapViewLite mapView, SearchExample searchExample) {
+    public RoutingExample(Context context, MapView mapView, SearchExample searchExample) {
         // Inicialización del contexto,la vista del mapa y la clase de searchExample
         this.context = context;
         this.mapView = mapView;
@@ -108,6 +137,11 @@ public class RoutingExample {
         // Inicialización de los widgets de entrada de texto
         direccion1 = activity.findViewById(R.id.direccion1);
         direccion2 = activity.findViewById(R.id.direccion2);
+        navigatorLayout = activity.findViewById(R.id.navigatorLayout);
+        routeLayout = activity.findViewById(R.id.routeLayout);
+        messageView = activity.findViewById(R.id.message_view);
+        releaseCameraButton = activity.findViewById(R.id.releaseCameraButton);
+        stopSimulationButton = activity.findViewById(R.id.stopSimulationButton);
         // Inicialización de la cámara del mapa
         camara = mapView.getCamera();
         try {
@@ -115,15 +149,50 @@ public class RoutingExample {
             routingEngine = new RoutingEngine();
         } catch (InstantiationErrorException e) {
             // Manejo de la excepción de inicialización
-            throw new RuntimeException("Initialization of RoutingEngine failed: " + e.error.name());
+            //throw new RuntimeException("Initialization of RoutingEngine failed: " + e.error.name());
         }
         try {
             // Inicialización del motor de búsqueda
             searchEngine = new SearchEngine();
         } catch (InstantiationErrorException e) {
             // Manejo de la excepción de inicialización
-            throw new RuntimeException("Initialization of SearchEngine failed: " + e.error.name());
+            //throw new RuntimeException("Initialization of SearchEngine failed: " + e.error.name());
         }
+        releaseCameraButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleTrackingButtonClicked();
+            }
+        });
+        stopSimulationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                detach();
+            }
+        });
+    }
+
+    public Route getRoute() {
+        return route;
+    }
+
+    public void toggleTrackingButtonClicked() {
+        if(isCameraTrackingEnabled){
+            navigationExample.stopCameraTracking();
+            isCameraTrackingEnabled = false;
+        }else{
+            navigationExample.startCameraTracking();
+            isCameraTrackingEnabled = true;
+        }
+    }
+
+    public void detach() {
+        // Disables TBT guidance (if running) and enters tracking mode.
+        navigationExample.stopNavigation(isCameraTrackingEnabled);
+        // Disables positioning.
+        navigationExample.stopLocating();
+        // Disables rendering.
+        navigationExample.stopRendering();
     }
 
     public void addRoute() {
@@ -153,30 +222,38 @@ public class RoutingExample {
                                         Waypoint destinationWaypoint = new Waypoint(destinationCoordinates);
                                         // Create a list of Waypoints
                                         List<Waypoint> waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
+                                        // A route handle is required for the DynamicRoutingEngine to get updates on traffic-optimized routes.
+                                        CarOptions routingOptions = new CarOptions();
+                                        routingOptions.routeOptions.enableRouteHandle = true;
                                         // Calculate the route
                                         routingEngine.calculateRoute(
                                                 waypoints,
-                                                new CarOptions(),
+                                                routingOptions,
                                                 new CalculateRouteCallback() {
                                                     @Override
                                                     public void onRouteCalculated(@Nullable RoutingError routingError, @Nullable List<Route> routes) {
                                                         // Check if route calculation was successful
                                                         if (routingError == null) {
                                                             // Get the first route from the list
-                                                            Route route = routes.get(0);
-                                                            // Show route details
-                                                            showRouteDetails(route);
+                                                            route = routes.get(0);
                                                             // Show route on map
                                                             showRouteOnMap(route);
+                                                            // Show route details
+                                                            showRouteDetails(route,false);
+                                                            //logRouteRailwayCrossingDetails(route);
+                                                            //logRouteSectionDetails(route);
+                                                            //logRouteViolations(route);
+                                                            //logTollDetails(route);
                                                             // Calcular la extensión de la ruta
                                                             GeoBox geoBox = calculateRouteGeoBox(route);
                                                             // Calcular el centro del GeoBox
                                                             GeoCoordinates center = calculateGeoBoxCenter(geoBox);
                                                             // Configurar la cámara para que se ajuste a la extensión de la ruta
-                                                            camara.setTarget(center);
+                                                            //camara.setTarget(center);
+                                                            camara.lookAt(geoBox,new GeoOrientationUpdate(center.latitude,center.longitude));
                                                             // Ajustar el nivel de zoom para que toda la ruta sea visible en el mapa
-                                                            /*camara.setZoomLevel(adjustZoomLevel(geoBox));*/
-                                                            animateZoom(adjustZoomLevel(geoBox));
+                                                            //camara.setZoomLevel(adjustZoomLevel(geoBox));
+                                                            //animateZoom(adjustZoomLevel(geoBox));
                                                         } else {
                                                             // Show error message
                                                             showDialog("Error mientras se calculaba la ruta:", routingError.toString());
@@ -204,16 +281,123 @@ public class RoutingExample {
             Toast.makeText(context, "La direccion1 esta vacia", Toast.LENGTH_SHORT).show();
         }
     }
-    private void showRouteDetails(Route route) {
-        // Tomamos el tiempo y la distancia de la ruta
+
+    private void logRouteRailwayCrossingDetails(Route route) {
+        for (RouteRailwayCrossing routeRailwayCrossing : route.getRailwayCrossings()) {
+            // Coordinates of the route offset
+            GeoCoordinates routeOffsetCoordinates = routeRailwayCrossing.coordinates;
+            // Index of the corresponding route section. The start of the section indicates the start of the offset.
+            int routeOffsetSectionIndex = routeRailwayCrossing.routeOffset.sectionIndex;
+            // Offset from the start of the specified section to the specified location along the route.
+            double routeOffsetInMeters = routeRailwayCrossing.routeOffset.offsetInMeters;
+
+            Log.d(TAG, "A railway crossing of type " + routeRailwayCrossing.type.name() +
+                    "is situated " +
+                    routeOffsetInMeters + " m away from start of section: " +
+                    routeOffsetSectionIndex);
+        }
+    }
+
+    private void logRouteSectionDetails(Route route) {
+        DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+
+        for (int i = 0; i < route.getSections().size(); i++) {
+            Section section = route.getSections().get(i);
+
+            Log.d(TAG, "Route Section : " + (i + 1));
+            Log.d(TAG, "Route Section Departure Time : "
+                    + dateFormat.format(section.getDepartureLocationTime().localTime));
+            Log.d(TAG, "Route Section Arrival Time : "
+                    + dateFormat.format(section.getArrivalLocationTime().localTime));
+            Log.d(TAG, "Route Section length : " + section.getLengthInMeters() + " m");
+            Log.d(TAG, "Route Section duration : " + section.getDuration().getSeconds() + " s");
+        }
+    }
+
+    // An implementation may decide to reject a route if one or more violations are detected.
+    private void logRouteViolations(Route route) {
+        for (Section section : route.getSections()) {
+            for (Span span : section.getSpans()) {
+                List<GeoCoordinates> spanGeometryVertices = span.getGeometry().vertices;
+                // This route violation spreads across the whole span geometry.
+                GeoCoordinates violationStartPoint = spanGeometryVertices.get(0);
+                GeoCoordinates violationEndPoint = spanGeometryVertices.get(spanGeometryVertices.size() - 1);
+                for (int index : span.getNoticeIndexes()) {
+                    SectionNotice spanSectionNotice = section.getSectionNotices().get(index);
+                    // The violation code such as "VIOLATED_VEHICLE_RESTRICTION".
+                    String violationCode = spanSectionNotice.code.toString();
+                    //Log.d(TAG, "The violation " + violationCode + " starts at " + toString(violationStartPoint) + " and ends at " + toString(violationEndPoint) + " .");
+                }
+            }
+        }
+    }
+    private void logTollDetails(Route route) {
+        for (Section section : route.getSections()) {
+            // The spans that make up the polyline along which tolls are required or
+            // where toll booths are located.
+            List<Span> spans = section.getSpans();
+            List<Toll> tolls = section.getTolls();
+            if (!tolls.isEmpty()) {
+                Log.d(TAG, "Attention: This route may require tolls to be paid.");
+            }
+            for (Toll toll : tolls) {
+                Log.d(TAG, "Toll information valid for this list of spans:");
+                Log.d(TAG, "Toll system: " + toll.tollSystem);
+                Log.d(TAG, "Toll country code (ISO-3166-1 alpha-3): " + toll.countryCode);
+                Log.d(TAG, "Toll fare information: ");
+                for (TollFare tollFare : toll.fares) {
+                    // A list of possible toll fares which may depend on time of day, payment method and
+                    // vehicle characteristics. For further details please consult the local
+                    // authorities.
+                    Log.d(TAG, "Toll price: " + tollFare.price + " " + tollFare.currency);
+                    for (PaymentMethod paymentMethod : tollFare.paymentMethods) {
+                        Log.d(TAG, "Accepted payment methods for this price: " + paymentMethod.name());
+                    }
+                }
+            }
+        }
+    }
+
+    private void showRouteDetails(Route route, boolean isSimulated) {
         long estimatedTravelTimeInSeconds = route.getDuration().getSeconds();
         int lengthInMeters = route.getLengthInMeters();
-        // Creamos un string para mostrar los detalles de la ruta
+
         String routeDetails =
-                "Tiempo: " + formatTime(estimatedTravelTimeInSeconds)
-                + ", Distancia: " + formatLength(lengthInMeters);
-        // Mostramos los detalles de la ruta
-        showDialog("Detalles de la ruta", routeDetails);
+                "Travel Time: " + formatTime(estimatedTravelTimeInSeconds)
+                        + ", Length: " + formatLength(lengthInMeters);
+
+        showStartNavigationDialog("Route Details", routeDetails, route);
+    }
+
+    private void showStartNavigationDialog(String title, String message, Route route) {
+        String buttonTextSimulated = "Simulated";
+        String buttonTextDevice = "Device";
+
+        try {
+            // Inicialización del motor de búsqueda
+            navigationExample = new NavigationExample(context, mapView,messageView);
+        } catch (Exception e) {
+            // Manejo de la excepción de inicialización
+            //throw new RuntimeException("Initialization of SearchEngine failed: " + e.name());
+        }
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(context);
+        builder.setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(buttonTextSimulated, (dialog, which) -> {
+                    routeLayout.setVisibility(View.GONE);
+                    navigatorLayout.setVisibility(View.VISIBLE);
+                    navigationExample.startNavigation(route, true, isCameraTrackingEnabled);
+                })
+                .setNeutralButton(buttonTextDevice, (dialog, which) -> {
+                    routeLayout.setVisibility(View.GONE);
+                    navigatorLayout.setVisibility(View.VISIBLE);
+                    navigationExample.startNavigation(route, false, isCameraTrackingEnabled);
+                })
+                .setNegativeButton("Cancelar", (dialog, which) -> {
+                    // Acción al presionar el botón "Cancelar" (opcional)
+                    dialog.dismiss(); // Cierra el diálogo
+                })
+                .show();
     }
 
     private String formatTime(long sec) {
@@ -240,37 +424,89 @@ public class RoutingExample {
     }
 
     private void showRouteOnMap(Route route) {
-        // Tomamos el GeoPolyline de la ruta
+        // Show route as polyline.
         GeoPolyline routeGeoPolyline = route.getGeometry();
-        // Creamos un MapPolylineStyle para personalizar la apariencia de la polilínea
-        MapPolylineStyle mapPolylineStyle = new MapPolylineStyle();
-        // Establecemos el color y el ancho de la polilínea
-        mapPolylineStyle.setColor(0x00908AA0, PixelFormat.RGBA_8888);
-        // Establecemos el ancho de la polilínea
-        mapPolylineStyle.setWidthInPixels(10);
-        // Creamos un MapPolyline para mostrar la polilínea en el mapa
-        MapPolyline routeMapPolyline = new MapPolyline(routeGeoPolyline, mapPolylineStyle);
-        // Agregamos la polilínea al mapa
+        float widthInPixels = 20;
+        Color polylineColor = new Color(0, (float) 0.56, (float) 0.54, (float) 0.63);
+        MapPolyline routeMapPolyline = null;
+
+        try {
+            routeMapPolyline = new MapPolyline(routeGeoPolyline, new MapPolyline.SolidRepresentation(
+                    new MapMeasureDependentRenderSize(RenderSize.Unit.PIXELS, widthInPixels),
+                    polylineColor,
+                    LineCap.ROUND));
+        } catch (MapPolyline.Representation.InstantiationException e) {
+            Log.e("MapPolyline Representation Exception:", e.error.name());
+        } catch (MapMeasureDependentRenderSize.InstantiationException e) {
+            Log.e("MapMeasureDependentRenderSize Exception:", e.error.name());
+        }
+
         mapView.getMapScene().addMapPolyline(routeMapPolyline);
-        // Agregamos la polilínea al listado de polilíneas
         mapPolylines.add(routeMapPolyline);
-        // Tomamos los puntos de inicio y fin de la ruta
+
+        // Optionally, render traffic on route.
+        //showTrafficOnRoute(route);
+
         GeoCoordinates startPoint =
                 route.getSections().get(0).getDeparturePlace().mapMatchedCoordinates;
         GeoCoordinates destination =
                 route.getSections().get(route.getSections().size() - 1).getArrivalPlace().mapMatchedCoordinates;
+
         // Draw a circle to indicate starting point and destination.
         addCircleMapMarker(startPoint, R.drawable.green_dot);
         addCircleMapMarker(destination, R.drawable.red_dot);
+
         // Log maneuver instructions per route section.
         List<Section> sections = route.getSections();
-        // Iteramos sobre las secciones de la ruta
         for (Section section : sections) {
-            // Mostramos las instrucciones de manejo de la ruta
             logManeuverInstructions(section);
         }
-        // Iniciar la simulación de navegación
-        // TODO:
+    }
+
+    // This renders the traffic jam factor on top of the route as multiple MapPolylines per span.
+    private void showTrafficOnRoute(Route route) {
+        if (route.getLengthInMeters() / 1000 > 5000) {
+            Log.d(TAG, "Skip showing traffic-on-route for longer routes.");
+            return;
+        }
+
+        for (Section section : route.getSections()) {
+            for (Span span : section.getSpans()) {
+                TrafficSpeed trafficSpeed = span.getTrafficSpeed();
+                Color lineColor = getTrafficColor(trafficSpeed.jamFactor);
+                if (lineColor == null) {
+                    // We skip rendering low traffic.
+                    continue;
+                }
+                float widthInPixels = 10;
+                MapPolyline trafficSpanMapPolyline = null;
+                try {
+                    trafficSpanMapPolyline = new MapPolyline(span.getGeometry(), new MapPolyline.SolidRepresentation(
+                            new MapMeasureDependentRenderSize(RenderSize.Unit.PIXELS, widthInPixels),
+                            lineColor,
+                            LineCap.ROUND));
+                } catch (MapPolyline.Representation.InstantiationException e) {
+                    Log.e("MapPolyline Representation Exception:", e.error.name());
+                } catch (MapMeasureDependentRenderSize.InstantiationException e) {
+                    Log.e("MapMeasureDependentRenderSize Exception:", e.error.name());
+                }
+
+                mapView.getMapScene().addMapPolyline(trafficSpanMapPolyline);
+                mapPolylines.add(trafficSpanMapPolyline);
+            }
+        }
+    }
+
+    @Nullable
+    private Color getTrafficColor(Double jamFactor) {
+        if (jamFactor == null || jamFactor < 4) {
+            return null;
+        } else if (jamFactor >= 4 && jamFactor < 8) {
+            return Color.valueOf(1, 1, 0, 0.63f); // Yellow
+        } else if (jamFactor >= 8 && jamFactor < 10) {
+            return Color.valueOf(1, 0, 0, 0.63f); // Red
+        }
+        return Color.valueOf(0, 0, 0, 0.63f); // Black
     }
 
     private void logManeuverInstructions(Section section) {
@@ -290,39 +526,6 @@ public class RoutingExample {
             Log.d(TAG, maneuverInfo);
         }
     }
-
-    /*public void addWaypoints() {
-        if (startGeoCoordinates == null || destinationGeoCoordinates == null) {
-            showDialog("Error", "Please add a route first.");
-            return;
-        }
-
-        // Inserting stopover waypoints.
-        Waypoint waypoint1 = new Waypoint(createRandomGeoCoordinatesInViewport());
-        Waypoint waypoint2 = new Waypoint(createRandomGeoCoordinatesInViewport());
-        List<Waypoint> waypoints = new ArrayList<>(Arrays.asList(new Waypoint(startGeoCoordinates),
-                waypoint1, waypoint2, new Waypoint(destinationGeoCoordinates)));
-
-        routingEngine.calculateRoute(
-                waypoints,
-                new CarOptions(),
-                new CalculateRouteCallback() {
-                    @Override
-                    public void onRouteCalculated(@Nullable RoutingError routingError, @Nullable List<Route> routes) {
-                        if (routingError == null) {
-                            Route route = routes.get(0);
-                            showRouteDetails(route);
-                            showRouteOnMap(route);
-
-                            // Draw a circle to indicate the location of the stopover waypoints.
-                            addCircleMapMarker(waypoint1.coordinates, R.drawable.red_dot);
-                            addCircleMapMarker(waypoint2.coordinates, R.drawable.red_dot);
-                        } else {
-                            showDialog("Error while calculating a route:", routingError.toString());
-                        }
-                    }
-                });
-    }*/
 
     public void clearMap() {
         // Limpia los marcadores y las rutas anteriores
@@ -344,34 +547,15 @@ public class RoutingExample {
         for (MapPolyline mapPolyline : mapPolylines) {
             mapView.getMapScene().removeMapPolyline(mapPolyline);
         }
+        route = null;
+        isCameraTrackingEnabled=true;
         // Limpia la lista de rutas
         mapPolylines.clear();
     }
 
-    /*private GeoCoordinates createRandomGeoCoordinatesInViewport() {
-        GeoBox geoBox = mapView.getCamera().getBoundingBox();
-        GeoCoordinates northEast = geoBox.northEastCorner;
-        GeoCoordinates southWest = geoBox.southWestCorner;
-
-        double minLat = southWest.latitude;
-        double maxLat = northEast.latitude;
-        double lat = getRandom(minLat, maxLat);
-
-        double minLon = southWest.longitude;
-        double maxLon = northEast.longitude;
-        double lon = getRandom(minLon, maxLon);
-
-        return new GeoCoordinates(lat, lon);
-    }*/
-
-    /*private double getRandom(double min, double max) {
-        return min + Math.random() * (max - min);
-    }*/
-
     private void addCircleMapMarker(GeoCoordinates geoCoordinates, int resourceId) {
         MapImage mapImage = MapImageFactory.fromResource(context.getResources(), resourceId);
-        MapMarker mapMarker = new MapMarker(geoCoordinates);
-        mapMarker.addImage(mapImage, new MapMarkerImageStyle());
+        MapMarker mapMarker = new MapMarker(geoCoordinates, mapImage);
         mapView.getMapScene().addMapMarker(mapMarker);
         mapMarkerList.add(mapMarker);
     }
@@ -493,20 +677,7 @@ public class RoutingExample {
         );
         return mundialGeoBox;
     }
-    /*private void addPoiMapMarker(GeoCoordinates geoCoordinates) {
-        MapMarker mapMarker = createPoiMapMarker(geoCoordinates);
-        mapView.getMapScene().addMapMarker(mapMarker);
-        mapMarkerList.add(mapMarker);
-    }
 
-    private MapMarker createPoiMapMarker(GeoCoordinates geoCoordinates) {
-        MapImage mapImage = MapImageFactory.fromResource(context.getResources(), R.drawable.poi);
-        MapMarker mapMarker = new MapMarker(geoCoordinates);
-        MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
-        mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
-        mapMarker.addImage(mapImage, mapMarkerImageStyle);
-        return mapMarker;
-    }*/
     private GeoBox calculateRouteGeoBox(Route route) {
         // Tomamos los puntos de inicio y fin de la ruta
         List<GeoCoordinates> coordinates = route.getGeometry().vertices;
@@ -527,6 +698,12 @@ public class RoutingExample {
                 maxLon = coord.longitude;
             }
         }
+        // Añadimos un margen (ajusta el valor según tus necesidades)
+        double margin = 0.2; // Ejemplo: 0.01 grados
+        minLat -= margin;
+        maxLat += margin;
+        minLon -= margin;
+        maxLon += margin;
         // Devolvemos el GeoBox calculado
         return new GeoBox(
                 new GeoCoordinates(minLat, minLon),
@@ -554,7 +731,7 @@ public class RoutingExample {
     // Método para animar el zoom suavemente
     private void animateZoom(double targetZoomLevel) {
         // Toma el nivel de zoom actual
-        double currentZoomLevel = camara.getZoomLevel();
+        double currentZoomLevel = camara.getState().zoomLevel;
         // Genera una animación de valor para el nivel de zoom del actual al que deberia llegar segun la animacion
         ValueAnimator animator = ValueAnimator.ofFloat((float) currentZoomLevel, (float) targetZoomLevel);
         // Establece la duración de la animación en milisegundos
@@ -566,10 +743,55 @@ public class RoutingExample {
                 // Toma el valor actual de la animación
                 float animatedValue = (float) valueAnimator.getAnimatedValue();
                 // Establece el nuevo nivel de zoom
-                camara.setZoomLevel(animatedValue);
+                camara.setDistanceToTarget(animatedValue);
             }
         });
         // Inicia la animación
         animator.start();
     }
+    /*private void startGuidance(Route route) {
+        try {
+            // Without a route set, this starts tracking mode.
+            visualNavigator = new VisualNavigator();
+        } catch (InstantiationErrorException e) {
+            throw new RuntimeException("Initialization of VisualNavigator failed: " + e.error.name());
+        }
+
+        // This enables a navigation view including a rendered navigation arrow.
+        visualNavigator.startRendering(mapView);
+
+        // Hook in one of the many listeners. Here we set up a listener to get instructions on the maneuvers to take while driving.
+        // For more details, please check the "Navigation" example app and the Developer Guide.
+        *//*visualNavigator.setEventTextListener(new EventTextListener() {
+            @Override
+            public void onEventTextUpdated(@NonNull EventText eventText) {
+                // We use the built-in TTS engine to synthesize the localized text as audio.
+                voiceAssistant.speak(eventText.text);
+                // We can optionally retrieve the associated maneuver. The details will be null if the text contains
+                // non-maneuver related information, such as for speed camera warnings.
+                if (eventText.type == TextNotificationType.MANEUVER && eventText.maneuverNotificationDetails != null) {
+                    Maneuver maneuver = eventText.maneuverNotificationDetails.maneuver;
+                }
+            }
+        });*//*
+
+        // Set a route to follow. This leaves tracking mode.
+        visualNavigator.setRoute(route);
+
+        // VisualNavigator acts as LocationListener to receive location updates directly from a location provider.
+        // Any progress along the route is a result of getting a new location fed into the VisualNavigator.
+        setupLocationSource(visualNavigator, route);
+    }
+
+    private void setupLocationSource(LocationListener locationListener, Route route) {
+        try {
+            // Provides fake GPS signals based on the route geometry.
+            locationSimulator = new LocationSimulator(route, new LocationSimulatorOptions());
+        } catch (InstantiationErrorException e) {
+            throw new RuntimeException("Initialization of LocationSimulator failed: " + e.error.name());
+        }
+
+        locationSimulator.setListener(locationListener);
+        locationSimulator.start();
+    }*/
 }

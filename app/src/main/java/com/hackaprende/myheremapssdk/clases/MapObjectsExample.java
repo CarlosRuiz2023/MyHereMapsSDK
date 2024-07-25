@@ -19,103 +19,90 @@
 
 package com.hackaprende.myheremapssdk.clases;
 
-import android.app.Activity;
-import android.content.Context;
 import android.util.Log;
-import android.widget.EditText;
-import android.widget.Toast;
+import android.view.animation.Animation;
 
-import com.hackaprende.myheremapssdk.R;
+import com.here.sdk.core.Color;
 import com.here.sdk.core.GeoCircle;
 import com.here.sdk.core.GeoCoordinates;
+import com.here.sdk.core.GeoCoordinatesUpdate;
 import com.here.sdk.core.GeoPolygon;
 import com.here.sdk.core.GeoPolyline;
-import com.here.sdk.core.Point2D;
 import com.here.sdk.core.errors.InstantiationErrorException;
-import com.here.sdk.mapviewlite.Camera;
-import com.here.sdk.mapviewlite.MapCircle;
-import com.here.sdk.mapviewlite.MapCircleStyle;
-import com.here.sdk.mapviewlite.MapPolygon;
-import com.here.sdk.mapviewlite.MapPolygonStyle;
-import com.here.sdk.mapviewlite.MapPolyline;
-import com.here.sdk.mapviewlite.MapPolylineStyle;
-import com.here.sdk.mapviewlite.MapScene;
-import com.here.sdk.mapviewlite.MapViewLite;
-import com.here.sdk.mapviewlite.PixelFormat;
+import com.here.sdk.mapview.LineCap;
+import com.here.sdk.mapview.MapArrow;
+import com.here.sdk.mapview.MapCamera;
+import com.here.sdk.mapview.MapCameraAnimation;
+import com.here.sdk.mapview.MapCameraAnimationFactory;
+import com.here.sdk.mapview.MapMeasure;
+import com.here.sdk.mapview.MapMeasureDependentRenderSize;
+import com.here.sdk.mapview.MapPolygon;
+import com.here.sdk.mapview.MapPolyline;
+import com.here.sdk.mapview.MapScene;
+import com.here.sdk.mapview.MapView;
+import com.here.sdk.mapview.RenderSize;
+import com.here.time.Duration;
 
 import java.util.ArrayList;
 
 public class MapObjectsExample {
 
-    /*private static final GeoCoordinates BERLIN_GEO_COORDINATES = new GeoCoordinates(52.51760485151816, 13.380312380535472);*/
-    // Definimos una variable tipo MapScene
+    private static final  GeoCoordinates BERLIN_GEO_COORDINATES = new GeoCoordinates(52.51760485151816, 13.380312380535472);
+
     private final MapScene mapScene;
-    // Definimos una variable tipo Camera
-    private final Camera mapCamera;
-    // Definimos una variable tipo MapPolyline
+    private final MapCamera mapCamera;
     private MapPolyline mapPolyline;
-    // Definimos una variable tipo MapPolygon
+    private MapArrow mapArrow;
     private MapPolygon mapPolygon;
-    // Definimos una variable tipo MapCircle
-    private MapCircle mapCircle;
-    // Definimos una variable tipo Context
-    private Context context;
-    // Definimos una variable tipo EditText
-    EditText searchEditText;
-    // Definimos al constructor
-    public MapObjectsExample(MapViewLite mapView, Context context) {
-        // Generamos una Activity mediante el contexto
-        Activity activity = (Activity) context;
-        // Inicializamos las variables
-        this.searchEditText = activity.findViewById(R.id.searchEditText);
-        this.mapScene = mapView.getMapScene();
-        this.mapCamera = mapView.getCamera();
-        this.context = context;
+    private MapPolygon mapCircle;
+
+    public MapObjectsExample(MapView mapView) {
+        mapScene = mapView.getMapScene();
+        mapCamera = mapView.getCamera();
     }
 
-    /*public void showMapPolyline() {
+    public void showMapPolyline() {
         clearMap();
         // Move map to expected location.
-        mapCamera.setTarget(BERLIN_GEO_COORDINATES);
-        mapCamera.setZoomLevel(13.0);
+        //flyTo(BERLIN_GEO_COORDINATES);
 
         mapPolyline = createPolyline();
         mapScene.addMapPolyline(mapPolyline);
-    }*/
+    }
 
-    /*public void showMapPolygon() {
+    public void showMapArrow() {
         clearMap();
         // Move map to expected location.
-        mapCamera.setTarget(BERLIN_GEO_COORDINATES);
-        mapCamera.setZoomLevel(13.0);
+        //flyTo(BERLIN_GEO_COORDINATES);
+
+        mapArrow = createMapArrow();
+        mapScene.addMapArrow(mapArrow);
+    }
+
+    public void showMapPolygon() {
+        clearMap();
+        // Move map to expected location.
+        //flyTo(BERLIN_GEO_COORDINATES);
 
         mapPolygon = createPolygon();
         mapScene.addMapPolygon(mapPolygon);
-    }*/
-
-    public void showMapCircle(GeoCoordinates geoCoordinates, float radius) {
-        // Creamos el circulo
-        this.mapCircle = createMapCircle(geoCoordinates,radius);
-        // Agregamos el circulo al mapa
-        this.mapScene.addMapCircle(mapCircle);
     }
 
-    public void clearMap() {
-        // Eliminamos las lineas
-        if (mapPolyline != null) {
-            mapScene.removeMapPolyline(mapPolyline);
-        }
-        // Eliminamos el poligono
-        if (mapPolygon != null) {
-            mapScene.removeMapPolygon(mapPolygon);
-        }
-        // Eliminamos el circulo
-        if (mapCircle != null) {
-            mapScene.removeMapCircle(mapCircle);
-        }
+    public void showMapCircle(GeoCoordinates geoCoordinates, double radiusInMeters) {
+        clearMap();
+
+        // Move map to expected location.
+        flyTo(geoCoordinates,radiusInMeters);
+
+        mapCircle = createMapCircle(geoCoordinates,radiusInMeters);
+        mapScene.addMapPolygon(mapCircle);
     }
 
-    /*private MapPolyline createPolyline() {
+    public void clearMapButtonClicked() {
+        clearMap();
+    }
+
+    private MapPolyline createPolyline() {
         ArrayList<GeoCoordinates> coordinates = new ArrayList<>();
         coordinates.add(new GeoCoordinates(52.53032, 13.37409));
         coordinates.add(new GeoCoordinates(52.5309, 13.3946));
@@ -126,24 +113,56 @@ public class MapObjectsExample {
         try {
             geoPolyline = new GeoPolyline(coordinates);
         } catch (InstantiationErrorException e) {
-            // Less than two vertices.
+            // Thrown when less than two vertices.
             return null;
         }
 
-        MapPolylineStyle mapPolylineStyle = new MapPolylineStyle();
-        mapPolylineStyle.setWidthInPixels(20);
-        mapPolylineStyle.setColor(0x00908AA0, PixelFormat.RGBA_8888);
-        MapPolyline mapPolyline = new MapPolyline(geoPolyline, mapPolylineStyle);
+        float widthInPixels = 20;
+        Color lineColor = new Color(0, (float) 0.56, (float) 0.54, (float) 0.63);
+        MapPolyline mapPolyline = null;
+        try {
+            mapPolyline = new MapPolyline(geoPolyline, new MapPolyline.SolidRepresentation(
+                    new MapMeasureDependentRenderSize(RenderSize.Unit.PIXELS, widthInPixels),
+                    lineColor,
+                    LineCap.ROUND));
+        } catch (MapPolyline.Representation.InstantiationException e) {
+            Log.e("MapPolyline Representation Exception:", e.error.name());
+        } catch (MapMeasureDependentRenderSize.InstantiationException e) {
+            Log.e("MapMeasureDependentRenderSize Exception:", e.error.name());
+        }
 
         return mapPolyline;
-    }*/
+    }
 
-    /*private MapPolygon createPolygon() {
+    private MapArrow createMapArrow() {
         ArrayList<GeoCoordinates> coordinates = new ArrayList<>();
         coordinates.add(new GeoCoordinates(52.53032, 13.37409));
         coordinates.add(new GeoCoordinates(52.5309, 13.3946));
         coordinates.add(new GeoCoordinates(52.53894, 13.39194));
         coordinates.add(new GeoCoordinates(52.54014, 13.37958));
+
+        GeoPolyline geoPolyline;
+        try {
+            geoPolyline = new GeoPolyline(coordinates);
+        } catch (InstantiationErrorException e) {
+            // Thrown when less than two vertices.
+            return null;
+        }
+
+        float widthInPixels = 20;
+        Color lineColor = Color.valueOf(0, 0.56f, 0.54f, 0.63f); // RGBA
+        MapArrow mapArrow = new MapArrow(geoPolyline, widthInPixels, lineColor);
+
+        return mapArrow;
+    }
+
+    private MapPolygon createPolygon() {
+        ArrayList<GeoCoordinates> coordinates = new ArrayList<>();
+        // Note that a polygon requires a clockwise or counter-clockwise order of the coordinates.
+        coordinates.add(new GeoCoordinates(52.54014, 13.37958));
+        coordinates.add(new GeoCoordinates(52.53894, 13.39194));
+        coordinates.add(new GeoCoordinates(52.5309, 13.3946));
+        coordinates.add(new GeoCoordinates(52.53032, 13.37409));
 
         GeoPolygon geoPolygon;
         try {
@@ -153,23 +172,45 @@ public class MapObjectsExample {
             return null;
         }
 
-        MapPolygonStyle mapPolygonStyle = new MapPolygonStyle();
-        mapPolygonStyle.setFillColor(0x00908AA0, PixelFormat.RGBA_8888);
-        MapPolygon mapPolygon = new MapPolygon(geoPolygon, mapPolygonStyle);
+        Color fillColor = Color.valueOf(0, 0.56f, 0.54f, 0.63f); // RGBA
+        MapPolygon mapPolygon = new MapPolygon(geoPolygon, fillColor);
 
         return mapPolygon;
-    }*/
+    }
 
-    private MapCircle createMapCircle(GeoCoordinates geoCoordinates,float radiusInMeters) {
-        // Creamos el GeoCircle para el circulo
+    private MapPolygon createMapCircle(GeoCoordinates geoCoordinates,double radiusInMeters) {
         GeoCircle geoCircle = new GeoCircle(geoCoordinates, radiusInMeters);
-        // Creamos el estilo
-        MapCircleStyle mapCircleStyle = new MapCircleStyle();
-        // Establecemos el color
-        mapCircleStyle.setFillColor(0xFF5722A0, PixelFormat.RGBA_8888);
-        // Creamos el circulo
-        MapCircle mapCircle = new MapCircle(geoCircle, mapCircleStyle);
-        // Devolvemos el circulo
-        return mapCircle;
+
+        GeoPolygon geoPolygon = new GeoPolygon(geoCircle);
+        Color fillColor = Color.valueOf(1.0f, 0.5f, 0.0f, 0.3f); // RGBA
+        MapPolygon mapPolygon = new MapPolygon(geoPolygon, fillColor);
+
+        return mapPolygon;
+    }
+
+    public void clearMap() {
+        if (mapPolyline != null) {
+            mapScene.removeMapPolyline(mapPolyline);
+        }
+
+        if (mapArrow != null) {
+            mapScene.removeMapArrow(mapArrow);
+        }
+
+        if (mapPolygon != null) {
+            mapScene.removeMapPolygon(mapPolygon);
+        }
+
+        if (mapCircle != null) {
+            mapScene.removeMapPolygon(mapCircle);
+        }
+    }
+    private void flyTo(GeoCoordinates geoCoordinates, double zoomLevel) {
+        GeoCoordinatesUpdate geoCoordinatesUpdate = new GeoCoordinatesUpdate(geoCoordinates);
+        MapMeasure mapMeasureZoom = new MapMeasure(MapMeasure.Kind.DISTANCE, zoomLevel*5);
+        double bowFactor = 1;
+        MapCameraAnimation animation = MapCameraAnimationFactory.flyTo(
+                geoCoordinatesUpdate, mapMeasureZoom, bowFactor, Duration.ofSeconds(3));
+        mapCamera.startAnimation(animation);
     }
 }

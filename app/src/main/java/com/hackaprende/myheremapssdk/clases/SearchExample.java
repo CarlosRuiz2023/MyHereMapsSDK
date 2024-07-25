@@ -37,25 +37,29 @@ import com.here.sdk.core.Anchor2D;
 import com.here.sdk.core.CustomMetadataValue;
 import com.here.sdk.core.GeoBox;
 import com.here.sdk.core.GeoCoordinates;
+import com.here.sdk.core.GeoCoordinatesUpdate;
 import com.here.sdk.core.LanguageCode;
 import com.here.sdk.core.Metadata;
 import com.here.sdk.core.Point2D;
 import com.here.sdk.core.errors.InstantiationErrorException;
 import com.here.sdk.gestures.GestureState;
-import com.here.sdk.mapviewlite.Camera;
-import com.here.sdk.mapviewlite.MapImage;
-import com.here.sdk.mapviewlite.MapImageFactory;
-import com.here.sdk.mapviewlite.MapMarker;
-import com.here.sdk.mapviewlite.MapMarkerImageStyle;
-import com.here.sdk.mapviewlite.MapViewLite;
-import com.here.sdk.mapviewlite.PickMapItemsCallback;
-import com.here.sdk.mapviewlite.PickMapItemsResult;
+import com.here.sdk.mapview.MapCamera;
+import com.here.sdk.mapview.MapCameraAnimation;
+import com.here.sdk.mapview.MapCameraAnimationFactory;
+import com.here.sdk.mapview.MapImage;
+import com.here.sdk.mapview.MapImageFactory;
+import com.here.sdk.mapview.MapMarker;
+import com.here.sdk.mapview.MapMeasure;
+import com.here.sdk.mapview.MapView;
+import com.here.sdk.mapview.MapViewBase;
+import com.here.sdk.mapview.PickMapItemsResult;
 import com.here.sdk.search.Place;
 import com.here.sdk.search.SearchCallback;
 import com.here.sdk.search.SearchEngine;
 import com.here.sdk.search.SearchError;
 import com.here.sdk.search.SearchOptions;
 import com.here.sdk.search.TextQuery;
+import com.here.time.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,9 +70,9 @@ public class SearchExample {
     // Define el contexto de la aplicación
     private final Context context;
     // Define el mapa
-    private MapViewLite mapView;
+    private MapView mapView;
     // Define la cámara
-    private final Camera camera;
+    private final MapCamera camera;
     // Define la lista de MapMarker para ubicaciones buscadas por el usuario
     public final List<MapMarker> mapMarkerList = new ArrayList<>();
     // Define la lista de MapMarker para ubicaciones precionadas por el usuario
@@ -82,7 +86,7 @@ public class SearchExample {
     // Define la duración de la animación de zoom en milisegundos
     final long zoomAnimationDuration = 1000L;
     // Define el constructor de la clase
-    public SearchExample(Context context, MapViewLite mapView) {
+    public SearchExample(Context context, MapView mapView) {
         // Inicializa el contexto de la aplicación
         this.context = context;
         // Inicializa el mapa
@@ -114,11 +118,6 @@ public class SearchExample {
         //autoSuggestExample();
     }
 
-    /*public void onGeocodeButtonClicked() {
-        // Search for the location that belongs to an address and show it on the map.
-        geocodeAnAddress();
-    }*/
-
     private void searchExample() {
         // Obtener el texto ingresado en el campo de búsqueda
         String searchTerm = searchEditText.getText().toString();
@@ -138,17 +137,6 @@ public class SearchExample {
         }
     }
 
-    /*private void geocodeAnAddress() {
-        // Set map near to expected location.
-        GeoCoordinates geoCoordinates = new GeoCoordinates(52.537931, 13.384914);
-        camera.setTarget(geoCoordinates);
-        camera.setZoomLevel(14);
-        String queryString = "Invalidenstraße 116, Berlin";
-
-        Toast.makeText(context,"Finding locations for: " + queryString
-               + ". Tap marker to see the coordinates. Check the logs for the address.", Toast.LENGTH_LONG).show();
-        geocodeAddressAtLocation(queryString, geoCoordinates);
-    }*/
     public void setTapGestureHandler() {
         // Establece el gesto de tap en el mapa
         mapView.getGestures().setTapListener(touchPoint -> pickMapMarker(touchPoint));
@@ -161,7 +149,8 @@ public class SearchExample {
             // Verificar el estado del gesto
             if (gestureState == GestureState.BEGIN) {
                 // Obtener las coordenadas de la posición del toque
-                GeoCoordinates geoCoordinates = mapView.getCamera().viewToGeoCoordinates(touchPoint);
+                GeoCoordinates geoCoordinates = mapView.viewToGeoCoordinates(touchPoint);
+                //GeoCoordinates geoCoordinates = mapView.getCamera().viewToGeoCoordinates(touchPoint);
                 // Mostrar las coordenadas en un diálogo
                 getAddressForCoordinates(geoCoordinates);
             }
@@ -229,15 +218,15 @@ public class SearchExample {
         // Establece el radio en metros
         float radiusInPixel = 2;
         // Obtener las coordenadas del punto del toque
-        mapView.pickMapItems(point2D, radiusInPixel, new PickMapItemsCallback() {
+        mapView.pickMapItems(point2D, radiusInPixel, new MapViewBase.PickMapItemsCallback() {
             @Override
-            public void onMapItemsPicked(@Nullable PickMapItemsResult pickMapItemsResult) {
+            public void onPickMapItems(@Nullable PickMapItemsResult pickMapItemsResult) {
                 // Verificar si se ha seleccionado un MapMarker
                 if (pickMapItemsResult == null) {
                     return;
                 }
                 // Obtener el MapMarker seleccionado
-                MapMarker topmostMapMarker = pickMapItemsResult.getTopmostMarker();
+                MapMarker topmostMapMarker = pickMapItemsResult.getMarkers().get(1);
                 // Verificar si el MapMarker es nulo
                 if (topmostMapMarker == null) {
                     return;
@@ -305,10 +294,12 @@ public class SearchExample {
                 // Obtener las coordenadas de la primera ubicación de la lista
                 Place firstPlace = list.get(0);
                 GeoCoordinates targetCoordinates = firstPlace.getGeoCoordinates();
+                // Move map to expected location.
+                flyTo(targetCoordinates);
                 // Establecer las coordenadas de la primera ubicación como objetivo de la cámara
-                camera.setTarget(targetCoordinates);
+                //camera.setTarget(targetCoordinates);
                 /*camera.setZoomLevel(14); // Opcional: ajustar el nivel de zoom según sea necesario*/
-                animateZoom(14);
+                //animateZoom(14);
             }
         });
     }
@@ -331,80 +322,6 @@ public class SearchExample {
             return "SearchResult Metadata";
         }
     }
-
-    /*private final SuggestCallback autosuggestCallback = new SuggestCallback() {
-        @Override
-        public void onSuggestCompleted(@Nullable SearchError searchError, @Nullable List<Suggestion> list) {
-            if (searchError != null) {
-                Log.d(LOG_TAG, "Autosuggest Error: " + searchError.name());
-                return;
-            }
-            // If error is null, list is guaranteed to be not empty.
-            Log.d(LOG_TAG, "Autosuggest results: " + list.size());
-            for (Suggestion autosuggestResult : list) {
-                String addressText = "Not a place.";
-                Place place = autosuggestResult.getPlace();
-                if (place != null) {
-                    addressText = place.getAddress().addressText;
-                }
-
-                Log.d(LOG_TAG, "Autosuggest result: " + autosuggestResult.getTitle() +
-                        " addressText: " + addressText);
-            }
-        }
-    };*/
-
-    /*private void autoSuggestExample() {
-        GeoCoordinates centerGeoCoordinates = getMapViewCenter();
-        SearchOptions searchOptions = new SearchOptions();
-        searchOptions.languageCode = LanguageCode.EN_US;
-        searchOptions.maxItems = 5;
-        TextQuery.Area queryArea = new TextQuery.Area(centerGeoCoordinates);
-        // Simulate a user typing a search term.
-        searchEngine.suggest(
-                new TextQuery("p", // User typed "p".
-                        queryArea),
-                searchOptions,
-                autosuggestCallback);
-        searchEngine.suggest(
-                new TextQuery("pi", // User typed "pi".
-                        queryArea),
-                searchOptions,
-                autosuggestCallback);
-        searchEngine.suggest(
-                new TextQuery("piz", // User typed "piz".
-                        queryArea),
-                searchOptions,
-                autosuggestCallback);
-    }*/
-
-    /*private void geocodeAddressAtLocation(String queryString, GeoCoordinates geoCoordinates) {
-        clearMap();
-        AddressQuery query = new AddressQuery(queryString, geoCoordinates);
-        SearchOptions searchOptions = new SearchOptions();
-        searchOptions.languageCode = LanguageCode.DE_DE;
-        searchOptions.maxItems = 30;
-        searchEngine.search(query, searchOptions, new SearchCallback() {
-            @Override
-            public void onSearchCompleted(SearchError searchError, List<Place> list) {
-                if (searchError != null) {
-                    showDialog("Geocoding", "Error: " + searchError.toString());
-                    return;
-                }
-                for (Place geocodingResult : list) {
-                    GeoCoordinates geoCoordinates = geocodingResult.getGeoCoordinates();
-                    Address address = geocodingResult.getAddress();
-                    String locationDetails = address.addressText
-                            + ". GeoCoordinates: " + geoCoordinates.latitude
-                            + ", " + geoCoordinates.longitude;
-
-                    Log.d(LOG_TAG, "GeocodingResult: " + locationDetails);
-                    addPoiMapMarker(geoCoordinates);
-                }
-                showDialog("Geocoding result","Size: " + list.size());
-            }
-        });
-    }*/
 
     private void addPoiMapMarkerPuntero(GeoCoordinates geoCoordinates, Metadata metadata) {
         // Clear the map.
@@ -444,36 +361,36 @@ public class SearchExample {
     private MapMarker createPoiMapMarker(GeoCoordinates geoCoordinates) {
         // Create a MapMarker
         MapImage mapImage = MapImageFactory.fromResource(context.getResources(), R.drawable.poi);
-        MapMarker mapMarker = new MapMarker(geoCoordinates);
-        MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
-        mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
-        mapMarker.addImage(mapImage, mapMarkerImageStyle);
+        MapMarker mapMarker = new MapMarker(geoCoordinates,mapImage);
+        //MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
+        //mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
+        //mapMarker.addImage(mapImage, mapMarkerImageStyle);
         return mapMarker;
     }
 
     private MapMarker createPoiMapMarker1(GeoCoordinates geoCoordinates) {
         // Create a MapMarker
         MapImage mapImage = MapImageFactory.fromResource(context.getResources(), R.drawable.poi1);
-        MapMarker mapMarker = new MapMarker(geoCoordinates);
-        MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
-        mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
-        mapMarker.addImage(mapImage, mapMarkerImageStyle);
+        MapMarker mapMarker = new MapMarker(geoCoordinates,mapImage);
+        //MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
+        //mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
+        //mapMarker.addImage(mapImage, mapMarkerImageStyle);
         return mapMarker;
     }
 
     public MapMarker createPoiMapMarker2(GeoCoordinates geoCoordinates) {
         // Create a MapMarker
         MapImage mapImage = MapImageFactory.fromResource(context.getResources(), R.drawable.poi2);
-        MapMarker mapMarker = new MapMarker(geoCoordinates);
-        MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
-        mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
-        mapMarker.addImage(mapImage, mapMarkerImageStyle);
+        MapMarker mapMarker = new MapMarker(geoCoordinates,mapImage);
+        //MapMarkerImageStyle mapMarkerImageStyle = new MapMarkerImageStyle();
+        //mapMarkerImageStyle.setAnchorPoint(new Anchor2D(0.5F, 1));
+        //mapMarker.addImage(mapImage, mapMarkerImageStyle);
         return mapMarker;
     }
 
     private GeoCoordinates getMapViewCenter() {
         // Get the center of the map.
-        return mapView.getCamera().getTarget();
+        return mapView.getCamera().getState().targetCoordinates;
     }
 
     private GeoBox getMapViewGeoBox() {
@@ -557,7 +474,7 @@ public class SearchExample {
     // Método para animar el zoom suavemente
     private void animateZoom(double targetZoomLevel) {
         // Obtener el nivel de zoom actual
-        double currentZoomLevel = camera.getZoomLevel();
+        double currentZoomLevel = camera.getState().zoomLevel;
         // Crear un objeto ValueAnimator para animar el zoom
         ValueAnimator animator = ValueAnimator.ofFloat((float) currentZoomLevel, (float) targetZoomLevel);
         // Establecer la duración de la animación en milisegundos
@@ -569,10 +486,18 @@ public class SearchExample {
                 // Obtener el valor actual del valor animado
                 float animatedValue = (float) valueAnimator.getAnimatedValue();
                 // Establecer el nivel de zoom
-                camera.setZoomLevel(animatedValue);
+                camera.setDistanceToTarget(animatedValue);
             }
         });
         // Iniciar la animación
         animator.start();
+    }
+    private void flyTo(GeoCoordinates geoCoordinates) {
+        GeoCoordinatesUpdate geoCoordinatesUpdate = new GeoCoordinatesUpdate(geoCoordinates);
+        MapMeasure mapMeasureZoom = new MapMeasure(MapMeasure.Kind.DISTANCE, 5000.0);
+        double bowFactor = 1;
+        MapCameraAnimation animation = MapCameraAnimationFactory.flyTo(
+                geoCoordinatesUpdate, mapMeasureZoom, bowFactor, Duration.ofSeconds(3));
+        camera.startAnimation(animation);
     }
 }
