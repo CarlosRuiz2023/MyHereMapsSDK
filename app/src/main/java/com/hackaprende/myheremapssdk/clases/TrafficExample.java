@@ -79,7 +79,7 @@ public class TrafficExample {
         }
 
         // Setting a tap handler to pick and search for traffic incidents around the tapped area.
-        setTapGestureHandler();
+        //setTapGestureHandler();
     }
 
     public void enableAll() {
@@ -119,7 +119,7 @@ public class TrafficExample {
         clearTrafficIncidentsMapPolylines();
     }
 
-    private void setTapGestureHandler() {
+    public void setTapGestureHandler() {
         mapView.getGestures().setTapListener(touchPoint -> {
             GeoCoordinates touchGeoCoords = mapView.viewToGeoCoordinates(touchPoint);
             // Can be null when the map was tilted and the sky was tapped.
@@ -131,6 +131,9 @@ public class TrafficExample {
                 queryForIncidents(touchGeoCoords);
             }
         });
+    }
+    private void removeTapGestureHandler() {
+        mapView.getGestures().setTapListener(null);
     }
 
     // Traffic incidents can only be picked, when MapScene.Layers.TRAFFIC_INCIDENTS is visible.

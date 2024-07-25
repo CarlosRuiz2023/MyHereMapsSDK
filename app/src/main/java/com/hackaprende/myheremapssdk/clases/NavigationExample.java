@@ -21,6 +21,7 @@ package com.hackaprende.myheremapssdk.clases;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -64,11 +65,13 @@ public class NavigationExample {
     private TextView messageView;
     private MapView mapView;
     private Context context;
+    private ImageView turnIcon;
 
-    public NavigationExample(Context context, MapView mapView, TextView messageView) {
+    public NavigationExample(Context context, MapView mapView, TextView messageView, ImageView turnIcon) {
         this.messageView = messageView;
         this.mapView = mapView;
         this.context = context;
+        this.turnIcon = turnIcon;
 
         // A class to receive real location events.
         herePositioningProvider = new HEREPositioningProvider();
@@ -91,7 +94,7 @@ public class NavigationExample {
         createDynamicRoutingEngine();
 
         // A class to handle various kinds of guidance events.
-        navigationEventHandler = new NavigationEventHandler(context, messageView);
+        navigationEventHandler = new NavigationEventHandler(context, messageView, turnIcon);
         navigationEventHandler.setupListeners(visualNavigator, dynamicRoutingEngine);
 
         messageView.setText("Initialization completed.");

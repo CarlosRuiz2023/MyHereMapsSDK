@@ -27,6 +27,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -126,6 +127,7 @@ public class RoutingExample {
     private TextView messageView;
     private boolean isCameraTrackingEnabled = true;
     private Button releaseCameraButton, stopSimulationButton;
+    private ImageView turnIcon;
     // Constructor de la clase
     public RoutingExample(Context context, MapView mapView, SearchExample searchExample) {
         // Inicialización del contexto,la vista del mapa y la clase de searchExample
@@ -142,6 +144,7 @@ public class RoutingExample {
         messageView = activity.findViewById(R.id.message_view);
         releaseCameraButton = activity.findViewById(R.id.releaseCameraButton);
         stopSimulationButton = activity.findViewById(R.id.stopSimulationButton);
+        turnIcon = activity.findViewById(R.id.turnIcon);
         // Inicialización de la cámara del mapa
         camara = mapView.getCamera();
         try {
@@ -187,12 +190,17 @@ public class RoutingExample {
     }
 
     public void detach() {
+        clearMap();
         // Disables TBT guidance (if running) and enters tracking mode.
         navigationExample.stopNavigation(isCameraTrackingEnabled);
         // Disables positioning.
         navigationExample.stopLocating();
         // Disables rendering.
         navigationExample.stopRendering();
+        // Hides the navigator layout.
+        navigatorLayout.setVisibility(View.GONE);
+        // Shows the route layout.
+        routeLayout.setVisibility(View.VISIBLE);
     }
 
     public void addRoute() {
@@ -375,7 +383,7 @@ public class RoutingExample {
 
         try {
             // Inicialización del motor de búsqueda
-            navigationExample = new NavigationExample(context, mapView,messageView);
+            navigationExample = new NavigationExample(context, mapView,messageView,turnIcon);
         } catch (Exception e) {
             // Manejo de la excepción de inicialización
             //throw new RuntimeException("Initialization of SearchEngine failed: " + e.name());

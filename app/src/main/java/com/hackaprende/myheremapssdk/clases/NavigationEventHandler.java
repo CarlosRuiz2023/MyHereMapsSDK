@@ -24,10 +24,12 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.hackaprende.myheremapssdk.R;
 import com.here.sdk.core.GeoCoordinates;
 import com.here.sdk.core.LanguageCode;
 import com.here.sdk.core.UnitSystem;
@@ -124,10 +126,12 @@ public class NavigationEventHandler {
     private MapMatchedLocation lastMapMatchedLocation;
     private final VoiceAssistant voiceAssistant;
     private final TextView messageView;
+    private ImageView turnIcon;
 
-    public NavigationEventHandler(Context context, TextView messageView) {
+    public NavigationEventHandler(Context context, TextView messageView,ImageView turnIcon) {
         this.context = context;
         this.messageView = messageView;
+        this.turnIcon = turnIcon;
 
         // A helper class for TTS.
         voiceAssistant = new VoiceAssistant(context);
@@ -194,6 +198,24 @@ public class NavigationEventHandler {
                 } else {
                     // A maneuver update contains a different distance to reach the next maneuver.
                     messageView.setText("Maneuver update: " + logMessage);
+                    if(logMessage.contains("RIGHT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_right);
+                    }
+                    if(logMessage.contains("SLIGHT_RIGHT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_slight_right);
+                    }
+                    if(logMessage.contains("RIGHT_FORK")){
+                        turnIcon.setImageResource(R.drawable.ic_fork_right);
+                    }
+                    if(logMessage.contains("LEFT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_left);
+                    }
+                    if(logMessage.contains("SLIGHT_LEFT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_slight_left);
+                    }
+                    if(logMessage.contains("LEFT_FORK")){
+                        turnIcon.setImageResource(R.drawable.ic_fork_left);
+                    }
                 }
 
                 previousManeuverIndex = nextManeuverIndex;

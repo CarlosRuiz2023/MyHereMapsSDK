@@ -283,7 +283,6 @@ public class MainActivity extends AppCompatActivity{
                         tilsearch.setHint("Buscar...");
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
                         cameraExample.removeCameraObserver();
-                        cameraExample.setTapGestureHandlerRemove();
                         searchExample.setTapGestureHandler();
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         btnDraw.setVisibility(View.GONE);
@@ -298,8 +297,7 @@ public class MainActivity extends AppCompatActivity{
                     case "Enrutar":
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
                         cameraExample.removeCameraObserver();
-                        cameraExample.setTapGestureHandlerRemove();
-                        searchExample.setTapGestureHandler();
+                        trafficExample.setTapGestureHandler();
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         searchLayout.setVisibility(View.GONE);
                         datos.setVisibility(View.GONE);
@@ -318,7 +316,6 @@ public class MainActivity extends AppCompatActivity{
                         tilsearch.setHint("Crear");
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
                         cameraExample.removeCameraObserver();
-                        cameraExample.setTapGestureHandlerRemove();
                         searchExample.setTapGestureHandler();
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         routeLayout.setVisibility(View.GONE);
@@ -412,10 +409,10 @@ public class MainActivity extends AppCompatActivity{
                 // Check for errors
                 if (errorCode == null) {
                     // INICIALIZAMOS CADA UNA DE LAS INSTANCIAS NECESARIAS DEL APLICATIVO
-                    searchExample = new SearchExample(MainActivity.this, mapView);
-                    routingExample = new RoutingExample(MainActivity.this, mapView,searchExample);
                     mapObjectsExample = new MapObjectsExample(mapView);
                     trafficExample = new TrafficExample(MainActivity.this, mapView);
+                    searchExample = new SearchExample(MainActivity.this, mapView);
+                    routingExample = new RoutingExample(MainActivity.this, mapView,searchExample);
                     cameraExample = new CameraExample(MainActivity.this, mapView,searchExample);
                 } else {
                     // Handle loading error
@@ -487,6 +484,9 @@ public class MainActivity extends AppCompatActivity{
         // LIMPIAMOS EL MAPA EN TODAS LAS INTANCIAS
         searchExample.clearAll();
         mapObjectsExample.clearMap();
+        if(routingExample.getRoute() != null){
+            routingExample.detach();
+        }
         routingExample.clearMap();
         navigatorLayout.setVisibility(View.GONE);
         Menu menu = bottomNavigation.getMenu();

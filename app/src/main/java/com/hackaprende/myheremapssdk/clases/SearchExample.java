@@ -221,41 +221,45 @@ public class SearchExample {
         mapView.pickMapItems(point2D, radiusInPixel, new MapViewBase.PickMapItemsCallback() {
             @Override
             public void onPickMapItems(@Nullable PickMapItemsResult pickMapItemsResult) {
-                // Verificar si se ha seleccionado un MapMarker
-                if (pickMapItemsResult == null) {
-                    return;
-                }
-                // Obtener el MapMarker seleccionado
-                MapMarker topmostMapMarker = pickMapItemsResult.getMarkers().get(1);
-                // Verificar si el MapMarker es nulo
-                if (topmostMapMarker == null) {
-                    return;
-                }
-                // Obtener la metadata del MapMarker
-                Metadata metadata = topmostMapMarker.getMetadata();
-                // Verificar si la metadata es nula
-                if (metadata != null) {
-                    // Obtener el valor personalizado de la metadata
-                    CustomMetadataValue customMetadataValue = metadata.getCustomValue("key_search_result");
-                    // Verificar si el valor personalizado es nulo
-                    if (customMetadataValue != null) {
-                        // Obtener el objeto SearchResultMetadata
-                        SearchResultMetadata searchResultMetadata = (SearchResultMetadata) customMetadataValue;
-                        // Obtener el título y las coordenadas del lugar
-                        String title = searchResultMetadata.searchResult.getTitle();
-                        // Obtener las coordenadas del lugar
-                        double latitude = searchResultMetadata.searchResult.getGeoCoordinates().latitude;
-                        double longitude = searchResultMetadata.searchResult.getGeoCoordinates().longitude;
-                        // Mostrar el título y las coordenadas en un diálogo
-                        showDialog("Direccion del lugar: ",title+"\n"+"Coordenadas: "+latitude+","+longitude);
+                try {
+                    // Verificar si se ha seleccionado un MapMarker
+                    if (pickMapItemsResult == null) {
                         return;
                     }
+                    // Obtener el MapMarker seleccionado
+                    MapMarker topmostMapMarker = pickMapItemsResult.getMarkers().get(0);
+                    // Verificar si el MapMarker es nulo
+                    if (topmostMapMarker == null) {
+                        return;
+                    }
+                    // Obtener la metadata del MapMarker
+                    Metadata metadata = topmostMapMarker.getMetadata();
+                    // Verificar si la metadata es nula
+                    if (metadata != null) {
+                        // Obtener el valor personalizado de la metadata
+                        CustomMetadataValue customMetadataValue = metadata.getCustomValue("key_search_result");
+                        // Verificar si el valor personalizado es nulo
+                        if (customMetadataValue != null) {
+                            // Obtener el objeto SearchResultMetadata
+                            SearchResultMetadata searchResultMetadata = (SearchResultMetadata) customMetadataValue;
+                            // Obtener el título y las coordenadas del lugar
+                            String title = searchResultMetadata.searchResult.getTitle();
+                            // Obtener las coordenadas del lugar
+                            double latitude = searchResultMetadata.searchResult.getGeoCoordinates().latitude;
+                            double longitude = searchResultMetadata.searchResult.getGeoCoordinates().longitude;
+                            // Mostrar el título y las coordenadas en un diálogo
+                            showDialog("Direccion del lugar: ",title+"\n"+"Coordenadas: "+latitude+","+longitude);
+                            return;
+                        }
+                    }
+                    // Mostrar un diálogo con las coordenadas del MapMarker seleccionado
+                    showDialog("Picked Map Marker",
+                            "Coordenadas Geometricas: " +
+                                    topmostMapMarker.getCoordinates().latitude + ", " +
+                                    topmostMapMarker.getCoordinates().longitude);
+                } catch (Exception e) {
+                    //throw new RuntimeException(e);
                 }
-                // Mostrar un diálogo con las coordenadas del MapMarker seleccionado
-                showDialog("Picked Map Marker",
-                        "Coordenadas Geometricas: " +
-                                topmostMapMarker.getCoordinates().latitude + ", " +
-                                topmostMapMarker.getCoordinates().longitude);
             }
         });
     }
