@@ -24,8 +24,10 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -110,6 +112,7 @@ import com.here.sdk.trafficawarenavigation.DynamicRoutingEngine;
 import com.here.sdk.transport.GeneralVehicleSpeedLimits;
 import com.hackaprende.myheremapssdk.clases.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -127,11 +130,16 @@ public class NavigationEventHandler {
     private final VoiceAssistant voiceAssistant;
     private final TextView messageView;
     private ImageView turnIcon;
+    private RoutingExample routingExample;
+    private GeoCoordinates currentGeoCoordinates,destinationGeoCoordinates;
+    private NavigationExample navigationExample;
 
-    public NavigationEventHandler(Context context, TextView messageView,ImageView turnIcon) {
+    public NavigationEventHandler(Context context, TextView messageView,ImageView turnIcon,RoutingExample routingExample,NavigationExample navigationExample) {
         this.context = context;
         this.messageView = messageView;
         this.turnIcon = turnIcon;
+        this.routingExample = routingExample;
+        this.navigationExample = navigationExample;
 
         // A helper class for TTS.
         voiceAssistant = new VoiceAssistant(context);
@@ -170,8 +178,35 @@ public class NavigationEventHandler {
 
                 ManeuverAction action = nextManeuver.getAction();
                 String roadName = getRoadName(nextManeuver);
-                String logMessage = action.name() + " on " + roadName +
-                        " in " + nextManeuverProgress.remainingDistanceInMeters + " meters.";
+                String accionEspañol = "";
+                switch (action.name()) {
+                    case "RIGHT_TURN":
+                        accionEspañol = "Gire a la derecha";
+                        break;
+                    case "SLIGHT_RIGHT_TURN":
+                        accionEspañol = "Ligero giro a la derecha";
+                        break;
+                    case "RIGHT_FORK":
+                        accionEspañol = "Mantengase a la derecha";
+                        break;
+                    case "RIGHT_ROUNDABOUT_ENTER":
+                        accionEspañol = "Toma la rotonda hacia la derecha";
+                        break;
+                    case "LEFT_TURN":
+                        accionEspañol = "Gire a la izquierda";
+                        break;
+                    case "SLIGHT_LEFT_TURN":
+                        accionEspañol = "Ligero giro a la izquierda";
+                        break;
+                    case "LEFT_FORK":
+                        accionEspañol = "Mantengase a la izquierda";
+                        break;
+                    case "LEFT_ROUNDABOUT_ENTER":
+                        accionEspañol = "Toma la rotonda hacia la izquierda";
+                        break;
+                }
+                String logMessage = accionEspañol + " sobre " + roadName +
+                        " a " + nextManeuverProgress.remainingDistanceInMeters + " metros.";
 
                 // Angle is null for some maneuvers like Depart, Arrive and Roundabout.
                 Double turnAngle = nextManeuver.getTurnAngleInDegrees();
@@ -194,28 +229,58 @@ public class NavigationEventHandler {
                 }
 
                 if (previousManeuverIndex != nextManeuverIndex) {
-                    messageView.setText("New maneuver: " + logMessage);
-                } else {
-                    // A maneuver update contains a different distance to reach the next maneuver.
-                    messageView.setText("Maneuver update: " + logMessage);
-                    if(logMessage.contains("RIGHT_TURN")){
+                    if(action.name().equalsIgnoreCase("RIGHT_TURN")){
                         turnIcon.setImageResource(R.drawable.ic_turn_right);
                     }
-                    if(logMessage.contains("SLIGHT_RIGHT_TURN")){
+                    else if(action.name().equalsIgnoreCase("SLIGHT_RIGHT_TURN")){
                         turnIcon.setImageResource(R.drawable.ic_turn_slight_right);
                     }
-                    if(logMessage.contains("RIGHT_FORK")){
+                    else if(action.name().equalsIgnoreCase("RIGHT_FORK")){
                         turnIcon.setImageResource(R.drawable.ic_fork_right);
                     }
-                    if(logMessage.contains("LEFT_TURN")){
+                    else if(action.name().equalsIgnoreCase("RIGHT_ROUNDABOUT_ENTER")){
+                        turnIcon.setImageResource(R.drawable.ic_roundabout_left);
+                    }
+                    else if(action.name().equalsIgnoreCase("LEFT_TURN")){
                         turnIcon.setImageResource(R.drawable.ic_turn_left);
                     }
-                    if(logMessage.contains("SLIGHT_LEFT_TURN")){
+                    else if(action.name().equalsIgnoreCase("SLIGHT_LEFT_TURN")){
                         turnIcon.setImageResource(R.drawable.ic_turn_slight_left);
                     }
-                    if(logMessage.contains("LEFT_FORK")){
+                    else if(action.name().equalsIgnoreCase("LEFT_FORK")){
                         turnIcon.setImageResource(R.drawable.ic_fork_left);
                     }
+                    else if(action.name().equalsIgnoreCase("LEFT_ROUNDABOUT_ENTER")){
+                        turnIcon.setImageResource(R.drawable.ic_roundabout_right);
+                    }
+                    messageView.setText("Nueva maniobra: " + logMessage);
+                } else {
+                    if(action.name().equalsIgnoreCase("RIGHT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_right);
+                    }
+                    else if(action.name().equalsIgnoreCase("SLIGHT_RIGHT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_slight_right);
+                    }
+                    else if(action.name().equalsIgnoreCase("RIGHT_FORK")){
+                        turnIcon.setImageResource(R.drawable.ic_fork_right);
+                    }
+                    else if(action.name().equalsIgnoreCase("RIGHT_ROUNDABOUT_ENTER")){
+                        turnIcon.setImageResource(R.drawable.ic_roundabout_left);
+                    }
+                    else if(action.name().equalsIgnoreCase("LEFT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_left);
+                    }
+                    else if(action.name().equalsIgnoreCase("SLIGHT_LEFT_TURN")){
+                        turnIcon.setImageResource(R.drawable.ic_turn_slight_left);
+                    }
+                    else if(action.name().equalsIgnoreCase("LEFT_FORK")){
+                        turnIcon.setImageResource(R.drawable.ic_fork_left);
+                    }
+                    else if(action.name().equalsIgnoreCase("LEFT_ROUNDABOUT_ENTER")){
+                        turnIcon.setImageResource(R.drawable.ic_roundabout_right);
+                    }
+                    // A maneuver update contains a different distance to reach the next maneuver.
+                    messageView.setText("Maniobra actualizada: " + logMessage);
                 }
 
                 previousManeuverIndex = nextManeuverIndex;
@@ -232,7 +297,7 @@ public class NavigationEventHandler {
         visualNavigator.setDestinationReachedListener(new DestinationReachedListener() {
             @Override
             public void onDestinationReached() {
-                String message = "Destination reached.";
+                String message = "Destino alcanzado.";
                 messageView.setText(message);
                 // Guidance has stopped. Now consider to, for example,
                 // switch to tracking mode or stop rendering or locating or do anything else that may
@@ -377,16 +442,10 @@ public class NavigationEventHandler {
                 int distanceInMeters = (int) currentGeoCoordinates.distanceTo(lastGeoCoordinatesOnRoute);
                 Log.d(TAG, "RouteDeviation in meters is " + distanceInMeters);
 
-                // Now, an application needs to decide if the user has deviated far enough and
-                // what should happen next: For example, you can notify the user or simply try to
-                // calculate a new route. When you calculate a new route, you can, for example,
-                // take the current location as new start and keep the destination - another
-                // option could be to calculate a new route back to the lastMapMatchedLocationOnRoute.
-                // At least, make sure to not calculate a new route every time you get a RouteDeviation
-                // event as the route calculation happens asynchronously and takes also some time to
-                // complete.
-                // The deviation event is sent any time an off-route location is detected: It may make
-                // sense to await around 3 events before deciding on possible actions.
+                if (distanceInMeters > 100) {
+                    destinationGeoCoordinates = navigationExample.getVisualNavigator().getRoute().getSections().get(0).getArrivalPlace().mapMatchedCoordinates;
+                    routingExample.addRoute(currentGeoCoordinates, destinationGeoCoordinates);
+                }
             }
         });
 

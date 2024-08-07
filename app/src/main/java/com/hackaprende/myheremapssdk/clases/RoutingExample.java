@@ -23,6 +23,7 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.media.MediaRouter2;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -161,6 +162,13 @@ public class RoutingExample {
             // Manejo de la excepción de inicialización
             //throw new RuntimeException("Initialization of SearchEngine failed: " + e.error.name());
         }
+        try {
+            // Inicialización del motor de búsqueda
+            navigationExample = new NavigationExample(context, mapView,messageView,turnIcon,this);
+        } catch (Exception e) {
+            // Manejo de la excepción de inicialización
+            //throw new RuntimeException("Initialization of SearchEngine failed: " + e.name());
+        }
         releaseCameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -192,10 +200,7 @@ public class RoutingExample {
     public void detach() {
         clearMap();
         // Disables TBT guidance (if running) and enters tracking mode.
-        navigationExample.stopNavigation(isCameraTrackingEnabled);
-        // Disables positioning.
-        navigationExample.stopLocating();
-        // Disables rendering.
+        navigationExample.stopNavigation(false);
         navigationExample.stopRendering();
         // Hides the navigator layout.
         navigatorLayout.setVisibility(View.GONE);
@@ -289,6 +294,51 @@ public class RoutingExample {
             Toast.makeText(context, "La direccion1 esta vacia", Toast.LENGTH_SHORT).show();
         }
     }
+    public void addRoute(GeoCoordinates startGeoCoordinates, GeoCoordinates destinationGeoCoordinates) {
+        // Limpia los marcadores y las rutas anteriores
+        clearMap();
+        // Disables positioning.
+        navigationExample.stopNavigation(false);
+        isCameraTrackingEnabled=true;
+        // Create Waypoints
+        Waypoint startWaypoint = new Waypoint(startGeoCoordinates);
+        Waypoint destinationWaypoint = new Waypoint(destinationGeoCoordinates);
+        // Create a list of Waypoints
+        List<Waypoint> waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
+        // A route handle is required for the DynamicRoutingEngine to get updates on traffic-optimized routes.
+        CarOptions routingOptions = new CarOptions();
+        routingOptions.routeOptions.enableRouteHandle = true;
+        // Calculate the route
+        routingEngine.calculateRoute(
+                waypoints,
+                routingOptions,
+                new CalculateRouteCallback() {
+                    @Override
+                    public void onRouteCalculated(@Nullable RoutingError routingError, @Nullable List<Route> routes) {
+                        if (routingError == null) {
+                            route = routes.get(0);
+                            // Show route on map
+                            showRouteOnMap(route);
+                            // Show route details
+                            //showRouteDetails(route, false);
+                            //logRouteRailwayCrossingDetails(route);
+                            //logRouteSectionDetails(route);
+                            //logRouteViolations(route);
+                            //logTollDetails(route);
+                            // Calcular la extensión de la ruta
+                            GeoBox geoBox = calculateRouteGeoBox(route);
+                            // Calcular el centro del GeoBox
+                            GeoCoordinates center = calculateGeoBoxCenter(geoBox);
+                            // Configurar la cámara para que se ajuste a la extensión de la ruta
+                            //camara.setTarget(center);
+                            camara.lookAt(geoBox, new GeoOrientationUpdate(center.latitude, center.longitude));
+                            navigationExample.startNavigation(route, false, isCameraTrackingEnabled);
+                        } else {
+                            Toast.makeText(context, "No se pudo recalcular la ruta", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
 
     private void logRouteRailwayCrossingDetails(Route route) {
         for (RouteRailwayCrossing routeRailwayCrossing : route.getRailwayCrossings()) {
@@ -380,14 +430,6 @@ public class RoutingExample {
     private void showStartNavigationDialog(String title, String message, Route route) {
         String buttonTextSimulated = "Simulated";
         String buttonTextDevice = "Device";
-
-        try {
-            // Inicialización del motor de búsqueda
-            navigationExample = new NavigationExample(context, mapView,messageView,turnIcon);
-        } catch (Exception e) {
-            // Manejo de la excepción de inicialización
-            //throw new RuntimeException("Initialization of SearchEngine failed: " + e.name());
-        }
         androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(context);
         builder.setTitle(title)
                 .setMessage(message)

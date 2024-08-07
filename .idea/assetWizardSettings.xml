@@ -307,7 +307,7 @@
                                 <PersistentState>
                                   <option name="values">
                                     <map>
-                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/fork_right/baseline_fork_right_24.xml" />
+                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/roundabout_left/baseline_roundabout_left_24.xml" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -317,7 +317,7 @@
                         </option>
                         <option name="values">
                           <map>
-                            <entry key="outputName" value="ic_fork_right" />
+                            <entry key="outputName" value="baseline_roundabout_left_24" />
                             <entry key="sourceFile" value="C:\Users\juanc\AndroidStudioProjects\MyHereMapsSDK" />
                           </map>
                         </option>

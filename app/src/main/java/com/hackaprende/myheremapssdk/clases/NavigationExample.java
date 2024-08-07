@@ -66,12 +66,14 @@ public class NavigationExample {
     private MapView mapView;
     private Context context;
     private ImageView turnIcon;
+    private RoutingExample routingExample;
 
-    public NavigationExample(Context context, MapView mapView, TextView messageView, ImageView turnIcon) {
+    public NavigationExample(Context context, MapView mapView, TextView messageView, ImageView turnIcon, RoutingExample routingExample) {
         this.messageView = messageView;
         this.mapView = mapView;
         this.context = context;
         this.turnIcon = turnIcon;
+        this.routingExample = routingExample;
 
         // A class to receive real location events.
         herePositioningProvider = new HEREPositioningProvider();
@@ -94,7 +96,7 @@ public class NavigationExample {
         createDynamicRoutingEngine();
 
         // A class to handle various kinds of guidance events.
-        navigationEventHandler = new NavigationEventHandler(context, messageView, turnIcon);
+        navigationEventHandler = new NavigationEventHandler(context, messageView, turnIcon,routingExample,this);
         navigationEventHandler.setupListeners(visualNavigator, dynamicRoutingEngine);
 
         messageView.setText("Initialization completed.");
@@ -277,5 +279,8 @@ public class NavigationExample {
         visualNavigatorColors.setRouteProgressColors(SectionTransportMode.CAR, routeProgressColors);
         // Sets the adjusted colors for route progress and maneuver arrows based on the day color scheme.
         visualNavigator.setColors(visualNavigatorColors);
+    }
+    public VisualNavigator getVisualNavigator() {
+        return visualNavigator;
     }
 }

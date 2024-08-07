@@ -563,21 +563,11 @@ public class MainActivity extends AppCompatActivity{
     }
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DE CAMBIAR ESTILO
     public void changeStyle(View view) {
-        // TOMAMOS EL NOMBRE DEL ARCHIVO JSON
-        String filename = "night.json";
-        // TOMAMOS LOS ASSETS DEL PROYECTO
-        AssetManager assetManager = this.getAssets();
-        try {
-            // CARGAMOS EL ARCHIVO JSON
-            assetManager.open(filename);
-        } catch (Exception e) {
-            // MANDAMOS UN MENSAJE DE ERROR
-            Log.e("Error", e.getMessage());
-        }
+        String filename="";
         // AUMENTAMOS EL CONTADOR DE ESTILOS
         styleCounter++;
         // VERIFICAMOS EL CONTADOR DE ESTILOS NO SALGA DEL RANGO
-        if(styleCounter==4)styleCounter=0;
+        if(styleCounter==7)styleCounter=0;
         // VALIDAMOS POR EL CONTADOR DE ESTILOS
         switch (styleCounter) {
             case 0:
@@ -589,13 +579,40 @@ public class MainActivity extends AppCompatActivity{
                 style = MapScheme.NORMAL_NIGHT;
                 break;
             case 2:
-                // CAMBIAMOS EL ESTILO
-                style = MapScheme.HYBRID_DAY;
+                // CAMBIAMOS EL ESTILO A NULO
+                style = null;
+                // TOMAMOS EL NOMBRE DEL ARCHIVO JSON
+                filename = "custom-dark-style-neon-rds.json";
                 break;
             case 3:
                 // CAMBIAMOS EL ESTILO A NULO
+                style = null;
+                // TOMAMOS EL NOMBRE DEL ARCHIVO JSON
+                filename = "Day.json";
+                break;
+            case 4:
+                // CAMBIAMOS EL ESTILO A NULO
+                style = null;
+                // TOMAMOS EL NOMBRE DEL ARCHIVO JSON
+                filename = "prueba.json";
+                break;
+            case 5:
+                // CAMBIAMOS EL ESTILO
+                style = MapScheme.HYBRID_DAY;
+                break;
+            case 6:
+                // CAMBIAMOS EL ESTILO A NULO
                 style = MapScheme.SATELLITE;
                 break;
+        }
+        // TOMAMOS LOS ASSETS DEL PROYECTO
+        AssetManager assetManager = this.getAssets();
+        try {
+            // CARGAMOS EL ARCHIVO JSON
+            assetManager.open(filename);
+        } catch (Exception e) {
+            // MANDAMOS UN MENSAJE DE ERROR
+            Log.e("Error", e.getMessage());
         }
         // VERIFICAMOS SI EL ESTYLO ES NULO
         if(style==null){

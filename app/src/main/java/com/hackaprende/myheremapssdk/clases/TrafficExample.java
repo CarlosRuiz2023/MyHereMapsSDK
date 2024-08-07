@@ -19,16 +19,27 @@
 
 package com.hackaprende.myheremapssdk.clases;
 
+import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
+import android.app.Dialog;
 import android.content.Context;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
+import com.hackaprende.myheremapssdk.R;
 import com.here.sdk.core.Color;
 import com.here.sdk.core.GeoCircle;
 import com.here.sdk.core.GeoCoordinates;
 import com.here.sdk.core.GeoPolyline;
+import com.here.sdk.core.LanguageCode;
+import com.here.sdk.core.PickedPlace;
 import com.here.sdk.core.Point2D;
 import com.here.sdk.core.Rectangle2D;
 import com.here.sdk.core.Size2D;
@@ -40,10 +51,16 @@ import com.here.sdk.mapview.MapFeatures;
 import com.here.sdk.mapview.MapMeasure;
 import com.here.sdk.mapview.MapMeasureDependentRenderSize;
 import com.here.sdk.mapview.MapPolyline;
+import com.here.sdk.mapview.MapScene;
 import com.here.sdk.mapview.MapView;
 import com.here.sdk.mapview.MapViewBase;
 import com.here.sdk.mapview.PickMapContentResult;
 import com.here.sdk.mapview.RenderSize;
+import com.here.sdk.search.Place;
+import com.here.sdk.search.PlaceCategory;
+import com.here.sdk.search.PlaceIdSearchCallback;
+import com.here.sdk.search.SearchEngine;
+import com.here.sdk.search.SearchError;
 import com.here.sdk.traffic.TrafficEngine;
 import com.here.sdk.traffic.TrafficIncident;
 import com.here.sdk.traffic.TrafficIncidentLookupCallback;
@@ -51,6 +68,7 @@ import com.here.sdk.traffic.TrafficIncidentLookupOptions;
 import com.here.sdk.traffic.TrafficIncidentsQueryCallback;
 import com.here.sdk.traffic.TrafficIncidentsQueryOptions;
 import com.here.sdk.traffic.TrafficQueryError;
+import com.hackaprende.myheremapssdk.R;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -121,7 +139,7 @@ public class TrafficExample {
 
     public void setTapGestureHandler() {
         mapView.getGestures().setTapListener(touchPoint -> {
-            GeoCoordinates touchGeoCoords = mapView.viewToGeoCoordinates(touchPoint);
+            /*GeoCoordinates touchGeoCoords = mapView.viewToGeoCoordinates(touchPoint);
             // Can be null when the map was tilted and the sky was tapped.
             if (touchGeoCoords != null) {
                 // Pick incidents that are shown in MapScene.Layers.TRAFFIC_INCIDENTS.
@@ -129,7 +147,62 @@ public class TrafficExample {
 
                 // Query for incidents independent of MapScene.Layers.TRAFFIC_INCIDENTS.
                 queryForIncidents(touchGeoCoords);
-            }
+            }*/
+            Rectangle2D rectangle2D = new Rectangle2D(touchPoint, new Size2D(50, 50));
+            ArrayList<MapScene.MapPickFilter.ContentType> contentTypesToPickFrom = new ArrayList<>();
+            contentTypesToPickFrom.add(MapScene.MapPickFilter.ContentType.MAP_CONTENT);
+            MapScene.MapPickFilter filter = new MapScene.MapPickFilter(contentTypesToPickFrom);
+            mapView.pick(filter, rectangle2D, mapPickResult -> {
+                if (mapPickResult == null) {
+                    return;
+                }
+                PickMapContentResult pickedMapContent = mapPickResult.getMapContent();
+                List<PickedPlace> cartoPOIList = pickedMapContent.getPickedPlaces();
+                List<PickMapContentResult.TrafficIncidentResult> trafficPOIList = pickedMapContent.getTrafficIncidents();
+                List<PickMapContentResult.VehicleRestrictionResult> vehicleRestrictionResultList = pickedMapContent.getVehicleRestrictions();
+
+                if (!cartoPOIList.isEmpty()) {
+                    PickedPlace pickedPlace = cartoPOIList.get(0);
+                    Log.d("Carto POI picked: ", pickedPlace.name + ", Place category: " + pickedPlace.placeCategoryId);
+                    SearchEngine searchEngine = null;
+                    try {
+                        searchEngine = new SearchEngine();
+                    } catch (InstantiationErrorException e) {
+                        throw new RuntimeException(e);
+                    }
+                    searchEngine.searchPickedPlace(pickedPlace, LanguageCode.ES_MX, new PlaceIdSearchCallback() {
+                        @Override
+                        public void onPlaceIdSearchCompleted(@Nullable SearchError searchError, @Nullable Place place) {
+                            if (searchError == null) {
+                                String address = place.getAddress().addressText;
+                                StringBuilder categoriesBuilder = new StringBuilder();
+                                for (PlaceCategory category : place.getDetails().categories) {
+                                    String name = category.getName();
+                                    if (name != null) {
+                                        if (categoriesBuilder.length() > 0) {
+                                            categoriesBuilder.append(", ");
+                                        }
+                                        categoriesBuilder.append(name);
+                                    }
+                                }
+                                showDialog("Información de lugar", address, categoriesBuilder.toString(), "Lugar de interés");
+                            } else {
+                                Log.e(TAG, "searchPickedPlace() resulted in an error: " + searchError.name());
+                            }
+                        }
+                    });
+                } else if (!trafficPOIList.isEmpty()) {
+                    PickMapContentResult.TrafficIncidentResult topmostContent = trafficPOIList.get(0);
+                    showDialog("Incidente de tráfico", "" + topmostContent.getType().name(), "", "Incidente de tráfico");
+                } else if (!vehicleRestrictionResultList.isEmpty()) {
+                    PickMapContentResult.VehicleRestrictionResult topmostContent = vehicleRestrictionResultList.get(0);
+                    String restrictionType = topmostContent.restrictionType != null ? topmostContent.restrictionType : "No especificado";
+                    showDialog("Restricción de vehículo",
+                            ""+ restrictionType,
+                            "",
+                            "");
+                }
+            });
         });
     }
     private void removeTapGestureHandler() {
@@ -276,5 +349,40 @@ public class TrafficExample {
         builder.setTitle(title);
         builder.setMessage(message);
         builder.show();
+    }
+    private void showDialog(String title, String mainInfo, String additionalInfo, String type) {
+        Dialog dialog = new Dialog(context);
+        dialog.setContentView(R.layout.dialog_poi_info);
+
+        TextView titleView = dialog.findViewById(R.id.dialog_title);
+        TextView addressView = dialog.findViewById(R.id.dialog_address);
+        TextView categoriesView = dialog.findViewById(R.id.dialog_categories);
+        TextView typeView = dialog.findViewById(R.id.textView3);
+        Button closeButton = dialog.findViewById(R.id.dialog_close_button);
+
+        titleView.setText(title);
+        addressView.setText(mainInfo);
+
+        if (!additionalInfo.isEmpty()) {
+            categoriesView.setText(additionalInfo);
+            typeView.setText("Categoría");
+        } else {
+            categoriesView.setVisibility(View.GONE);
+            typeView.setVisibility(View.GONE);
+        }
+
+        if (!type.isEmpty()) {
+            typeView.setText(type);
+        } else {
+            typeView.setVisibility(View.GONE);
+        }
+
+        closeButton.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
     }
 }
