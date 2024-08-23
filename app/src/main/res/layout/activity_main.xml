@@ -320,4 +320,27 @@
             android:scaleType="centerInside"
             android:src="@drawable/red_dot" />
     </LinearLayout>
+    <LinearLayout
+        android:id="@+id/zonasLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        android:visibility="gone">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="350dp"
+            android:layout_height="400dp"
+            android:scrollbars="vertical"
+            android:background="#CCFFFFFF"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnZona"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_add_circle_outline"
+            android:onClick="addZona"
+            app:backgroundTint="@color/white"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

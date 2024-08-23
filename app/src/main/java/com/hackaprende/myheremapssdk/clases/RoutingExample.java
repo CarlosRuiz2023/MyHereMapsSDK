@@ -39,10 +39,12 @@ import androidx.annotation.Nullable;
 import com.hackaprende.myheremapssdk.interfaces.GeoCoordinatesCallback;
 import com.hackaprende.myheremapssdk.R;
 import com.here.sdk.core.Color;
+import com.here.sdk.core.CountryCode;
 import com.here.sdk.core.CustomMetadataValue;
 import com.here.sdk.core.GeoBox;
 import com.here.sdk.core.GeoCoordinates;
 import com.here.sdk.core.GeoOrientationUpdate;
+import com.here.sdk.core.GeoPolygon;
 import com.here.sdk.core.GeoPolyline;
 import com.here.sdk.core.LanguageCode;
 import com.here.sdk.core.LocationListener;
@@ -54,6 +56,7 @@ import com.here.sdk.mapview.MapImage;
 import com.here.sdk.mapview.MapImageFactory;
 import com.here.sdk.mapview.MapMarker;
 import com.here.sdk.mapview.MapMeasureDependentRenderSize;
+import com.here.sdk.mapview.MapPolygon;
 import com.here.sdk.mapview.MapPolyline;
 import com.here.sdk.mapview.MapView;
 import com.here.sdk.mapview.RenderSize;
@@ -67,17 +70,21 @@ import com.here.sdk.routing.CarOptions;
 import com.here.sdk.routing.Maneuver;
 import com.here.sdk.routing.ManeuverAction;
 import com.here.sdk.routing.PaymentMethod;
+import com.here.sdk.routing.RoadFeatures;
 import com.here.sdk.routing.Route;
 import com.here.sdk.routing.RouteRailwayCrossing;
 import com.here.sdk.routing.RoutingEngine;
 import com.here.sdk.routing.RoutingError;
 import com.here.sdk.routing.Section;
 import com.here.sdk.routing.SectionNotice;
+import com.here.sdk.routing.SegmentReference;
 import com.here.sdk.routing.Span;
 import com.here.sdk.routing.Toll;
 import com.here.sdk.routing.TollFare;
 import com.here.sdk.routing.TrafficSpeed;
+import com.here.sdk.routing.TravelDirection;
 import com.here.sdk.routing.Waypoint;
+import com.here.sdk.routing.ZoneCategory;
 import com.here.sdk.search.Place;
 import com.here.sdk.search.SearchCallback;
 import com.here.sdk.search.SearchEngine;
@@ -238,6 +245,134 @@ public class RoutingExample {
                                         // A route handle is required for the DynamicRoutingEngine to get updates on traffic-optimized routes.
                                         CarOptions routingOptions = new CarOptions();
                                         routingOptions.routeOptions.enableRouteHandle = true;
+                                        // Definir las zonas de evitación
+                                        /*// GEOBOX
+                                        List<GeoBox> avoidanceZones = new ArrayList<>();
+
+                                        // Define la zona de evitación rectangular (ajusta las coordenadas según sea necesario)
+                                        GeoCoordinates topLeft = new GeoCoordinates(21.126205, -101.598454);
+                                        GeoCoordinates bottomRight = new GeoCoordinates(21.100375, -101.573880);
+                                        GeoBox avoidanceZone = new GeoBox(topLeft, bottomRight);
+
+                                        // Crea una lista de coordenadas para el MapPolygon
+                                        List<GeoCoordinates> polygonCoordinates = new ArrayList<>();
+                                        polygonCoordinates.add(topLeft);
+                                        polygonCoordinates.add(new GeoCoordinates(topLeft.latitude, bottomRight.longitude));
+                                        polygonCoordinates.add(bottomRight);
+                                        polygonCoordinates.add(new GeoCoordinates(bottomRight.latitude, topLeft.longitude));
+
+                                        // Crea un GeoPolygon a partir de las coordenadas
+                                        GeoPolygon geoPolygon = null;
+                                        try {
+                                            geoPolygon = new GeoPolygon(polygonCoordinates);
+                                        } catch (InstantiationErrorException e) {
+                                            Log.e("Prueba", "Error al crear la zona de evitación: " + e.error.name());
+                                        }
+
+                                        // Crea un MapPolygon con un color de relleno y un ancho de borde
+                                        Color fillColor = new Color(0.8f, 0.0f, 0.0f, 0.5f); // Rojo semi-transparente
+                                        MapPolygon mapPolygon = new MapPolygon(geoPolygon, fillColor);
+
+                                        // Agrega el MapPolygon a la escena del mapa
+                                        mapView.getMapScene().addMapPolygon(mapPolygon);
+
+                                        // Agrega las zonas de evitación a las opciones
+                                        avoidanceZones.add(avoidanceZone);
+
+                                        // Agrega las zonas de evitación a las opciones de enrutamiento
+                                        routingOptions.avoidanceOptions.avoidBoundingBoxAreas = avoidanceZones;*/
+                                        // GEOPOLYGON
+                                        List<GeoPolygon> avoidanceZones = new ArrayList<>();
+
+                                        // Define la zona de evitación con forma de polígono (ajusta las coordenadas según sea necesario)
+                                        List<GeoCoordinates> polygonZone = new ArrayList<>();
+                                        GeoCoordinates punto1 = new GeoCoordinates(21.121899, -101.592983);
+                                        GeoCoordinates punto2 = new GeoCoordinates(21.114376, -101.589591);
+                                        GeoCoordinates punto3 = new GeoCoordinates(21.103029, -101.576860);
+                                        polygonZone.add(punto1);
+                                        polygonZone.add(punto2);
+                                        polygonZone.add(punto3);
+                                        GeoPolygon polygonZone1 = null;
+                                        try {
+                                            polygonZone1 = new GeoPolygon(polygonZone);
+                                        } catch (InstantiationErrorException e) {
+                                            Log.e("Prueba", "Error al crear la zona de evitación: " + e.error.name());
+                                        }
+                                        // Crea un objeto MapPolygon con uncolor de relleno y un ancho de borde
+                                        Color fillColor = new Color(0.8f, 0.0f, 0.0f, 0.5f); // Rojo semi-transparente
+                                        MapPolygon mapPolygon = new MapPolygon(polygonZone1, fillColor);
+
+                                        // Agrega el MapPolygon a la escena del mapa
+                                        mapView.getMapScene().addMapPolygon(mapPolygon);
+                                        avoidanceZones.add(polygonZone1);
+
+                                        // Agrega las zonas de evitación a las opciones de enrutamiento
+                                        routingOptions.avoidanceOptions.avoidPolygonAreas.add(polygonZone1);
+                                        // ROADFEAUTURES
+                                        /**
+                                         * CARPOOL_LANE: Carriles para vehículos compartidos.
+                                         * CONTROLLED_ACCESS_HIGHWAY: Autopistas de acceso controlado.
+                                         * DIRT_ROAD: Caminos de tierra.
+                                         * FERRY: Transbordadores.
+                                         * HIGHWAY: Autopistas.
+                                         * PARK: Parques.
+                                         * RAMP: Rampas de acceso o salida de autopistas.
+                                         * ROUNDABOUT: Rotondas.
+                                         * TOLL_ROAD: Carreteras de peaje.
+                                         * TUNNEL: Túneles.
+                                         * URBAN: Áreas urbanas.
+                                         * */
+                                        /*List<RoadFeatures> roadFeaturesToAvoid = new ArrayList<>();
+                                        roadFeaturesToAvoid.add(RoadFeatures.FERRY);
+                                        roadFeaturesToAvoid.add(RoadFeatures.U_TURNS);
+                                        roadFeaturesToAvoid.add(RoadFeatures.SEASONAL_CLOSURE);
+
+                                        // Agrega las características de carretera a las opciones de evitación
+                                        routingOptions.avoidanceOptions.roadFeatures = roadFeaturesToAvoid;*/
+                                        // ZONECATEGORY
+                                        /*List<ZoneCategory>zoneCategoriesToAvoid = new ArrayList<>();
+                                        zoneCategoriesToAvoid.add(ZoneCategory.ENVIRONMENTAL);
+                                        // ... agrega más categorías de zona que deseas evitar ...
+
+                                        // Agrega las categorías de zona a las opciones de evitación
+                                        routingOptions.avoidanceOptions.zoneCategories = zoneCategoriesToAvoid;*/
+                                        // COUNTRYCODE
+                                        /*List<CountryCode> countriesToAvoid = new ArrayList<>();
+                                        countriesToAvoid.add(CountryCode.US);
+                                        countriesToAvoid.add(CountryCode.CA);
+                                        // ... agrega más países que deseas evitar ...
+
+                                        // Agrega los países a las opciones de evitación
+                                        routingOptions.avoidanceOptions.countries = countriesToAvoid;*/
+                                        // SEGMENT REFERENCES
+                                        /*// Define el nombre de la carretera que deseas evitar
+                                        String carreteraAEvita = "Eje Metropolitano Leon Silao"; // Reemplaza con el nombre de la carretera que deseas evitar
+
+                                        // Crea una consulta de texto
+                                        TextQuery textQuery = new TextQuery(carreteraAEvita,new TextQuery.Area(new GeoCoordinates(21.107097,-101.581266))); // Ajusta las coordenadas a la ubicación aproximada de la carretera
+
+                                        // Crea opciones de búsqueda
+                                        SearchOptions searchOptions = new SearchOptions();
+                                        searchOptions.maxItems=1; // Solo necesitamos el primer resultado
+
+                                        // Realiza la búsqueda
+                                        searchEngine.search(textQuery, searchOptions, (searchError, items) -> {
+                                            if (searchError != null) {
+                                                // Maneja el error de búsqueda
+                                                Log.e("Error", "Error al buscar la carretera: " + searchError.name());
+                                                return;
+                                            }
+
+                                            if (items != null && !items.isEmpty()) {
+                                                // Obtiene el primer resultado de la búsqueda
+                                                Place place = items.get(0);
+                                                Log.e("Prueba", "La dirección encontrada es: "+place.getAddress().addressText);
+
+                                                // Obtiene los IDs de segmento de la geometría de la carretera
+                                                List<SegmentReference> segmentReferences = obtenerSegmentReferences(place);
+                                                routingOptions.avoidanceOptions.segments = segmentReferences;
+                                            }
+                                        });*/
                                         // Calculate the route
                                         routingEngine.calculateRoute(
                                                 waypoints,
@@ -844,4 +979,23 @@ public class RoutingExample {
         locationSimulator.setListener(locationListener);
         locationSimulator.start();
     }*/
+    // Función para obtener los IDs de segmento de un objeto Place
+    private List<SegmentReference> obtenerSegmentReferences(Place place) {
+        List<SegmentReference> segmentReferences = new ArrayList<>();
+        List<GeoCoordinates> accessPoints= place.getAccessPoints();
+
+        if (accessPoints != null) {
+            for (GeoCoordinates accessPoint : accessPoints) {
+                // Crea un SegmentReference para cada punto de acceso
+                // Utiliza el ID del lugar como una aproximación del ID del segmento
+                // Ajusta los valores de offset para cubrir una pequeña porción de la carretera
+                double offsetStart = 0.45; // Ajusta este valor según sea necesario
+                double offsetEnd = 0.55; // Ajusta este valor según sea necesario
+                SegmentReference segmentReference = new SegmentReference(place.getId(), TravelDirection.BIDIRECTIONAL, offsetStart, offsetEnd);
+                segmentReferences.add(segmentReference);
+            }
+        }
+
+        return segmentReferences;
+    }
 }

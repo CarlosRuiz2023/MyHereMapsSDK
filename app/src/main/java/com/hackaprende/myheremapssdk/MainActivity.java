@@ -24,12 +24,16 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Looper;
 import android.provider.Settings;
@@ -49,31 +53,49 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.hackaprende.myheremapssdk.adaptadores.PolygonAdapter;
+import com.hackaprende.myheremapssdk.bd.PolygonDatabaseHelper;
 import com.hackaprende.myheremapssdk.clases.CameraExample;
 import com.hackaprende.myheremapssdk.clases.MapObjectsExample;
 import com.hackaprende.myheremapssdk.clases.TrafficExample;
 import com.hackaprende.myheremapssdk.clases.SearchExample;
 import com.hackaprende.myheremapssdk.interfaces.ReverseGeocodingCallback;
+import com.hackaprende.myheremapssdk.modelos.PolygonWithId;
 import com.hackaprende.myheremapssdk.permisos.PermissionsRequestor;
+import com.here.sdk.core.Anchor2D;
+import com.here.sdk.core.Color;
 import com.here.sdk.core.GeoCoordinates;
 import com.here.sdk.core.GeoCoordinatesUpdate;
 import com.here.sdk.core.GeoOrientation;
 import com.here.sdk.core.GeoOrientationUpdate;
+import com.here.sdk.core.GeoPolygon;
+import com.here.sdk.core.GeoPolyline;
 import com.here.sdk.core.Point2D;
 import com.here.sdk.core.engine.SDKBuildInformation;
 import com.here.sdk.core.engine.SDKNativeEngine;
 import com.here.sdk.core.engine.SDKOptions;
 import com.here.sdk.core.errors.InstantiationErrorException;
+import com.here.sdk.mapview.LineCap;
 import com.here.sdk.mapview.MapCamera;
 import com.here.sdk.mapview.MapCameraAnimation;
 import com.here.sdk.mapview.MapCameraAnimationFactory;
 import com.here.sdk.mapview.MapError;
+import com.here.sdk.mapview.MapImage;
+import com.here.sdk.mapview.MapImageFactory;
+import com.here.sdk.mapview.MapMarker;
 import com.here.sdk.mapview.MapMeasure;
+import com.here.sdk.mapview.MapMeasureDependentRenderSize;
+import com.here.sdk.mapview.MapPolygon;
+import com.here.sdk.mapview.MapPolyline;
 import com.here.sdk.mapview.MapScene;
 import com.here.sdk.mapview.MapScheme;
 import com.here.sdk.mapview.MapView;
 import com.hackaprende.myheremapssdk.clases.RoutingExample;
+import com.here.sdk.mapview.RenderSize;
 import com.here.time.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity{
 
@@ -93,40 +115,29 @@ public class MainActivity extends AppCompatActivity{
     private MapScheme style = MapScheme.NORMAL_DAY;
     // INICIALIZACION DE LA VARIABLE TIPO Camera PARA EL CONTROL DE LA CAMARA
     private MapCamera camara;
-    // INICIALIZACION DE LAS VARIABLES TIPO TextInputEditText PARA EL BUSCADOR DE DIRECCIONES
-    private TextInputEditText searchEditText;
-    // INICIALIZACION DE LAS VARIABLES TIPO TextInputEditText PARA EL ENRUTADOR DE DIRECCIONES
-    private TextInputEditText direccion1;
-    private TextInputEditText direccion2;
+    // INICIALIZACION DE LAS VARIABLES TIPO TextInputEditText
+    private TextInputEditText direccion1,direccion2,searchEditText;
     // INICIALIZACION DE LA VARIABLE TIPO BottomNavigationView PARA EL CONTROL DE LA BARRA DE NAVEGACION
     private BottomNavigationView bottomNavigation;
-    // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout PARA EL CONTROL DE BUSQUEDAS EN EL MAPA
-    private LinearLayout searchLayout;
-    // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout PARA EL CONTROL DE RUTAS
-    private LinearLayout routeLayout;
-    // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout PARA EL CONTROL DE RUTAS
-    private LinearLayout navigatorLayout;
-    // INICIALIZACION DE LAS VARIABLES TIPO MaterialButton PARA EL CONTROL DEL BUSCADOR
-    private MaterialButton btnSearch;
-    // INICIALIZACION DE LAS VARIABLES TIPO MaterialButton PARA EL CONTROL DE DIBUJAR
-    private MaterialButton btnDraw;
-    // INICIALIZACION DE LAS VARIABLES TIPO TextInputLayout PARA EL CONTROL DEL BUSCADOR
-    private TextInputLayout tilsearch;
-    // INICIALIZACION DE LAS VARIABLES TIPO TextInputLayout PARA EL CONTROL DE RUTAS
-    private TextInputLayout tildireccion1;
-    private TextInputLayout tildireccion2;
-    // INICIALIZACION DE LA VARIABLE TIPO LinearLayout PARA EL CONTROL DE LOS DATOS
-    private LinearLayout datos;
-    // INICIALIZACION DE LA VARIABLE TIPO LinearLayout PARA EL CONTROL DEL PUNTERO
-    private LinearLayout llCameraTargetDot;
+    // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout
+    private LinearLayout searchLayout,routeLayout,navigatorLayout,datos,llCameraTargetDot,zonasLayout;
+    // INICIALIZACION DE LAS VARIABLES TIPO MaterialButton
+    private MaterialButton btnSearch,btnDraw,btnZona;
+    // INICIALIZACION DE LAS VARIABLES TIPO TextInputLayout
+    private TextInputLayout tilsearch,tildireccion1,tildireccion2;
     // DEFINE UNA VARIABLE TIPO BOOLEAN PARA CONTROLAR SI ES LA PRIMERA HUBICACION DEL USUARIO
-    private boolean isFirstLocationUpdate = true;
-    // DEFINE UNA VARIABLE TIPO BOOLEAN PARA CONTROLAR EL ESTADO DE LA TRAMITE
-    private boolean isActiveTraffic = false;
+    private boolean isFirstLocationUpdate = true,isActiveTraffic = false;
     // DEFINE LA DURACION DEL TIEMPO DE ANIMACION
     final long zoomAnimationDuration = 1000L;
     // INICIALIZACION DE LA VARIABLE TIPO int PARA EL CONTADOR DE ESTILOS
     private int styleCounter=0;
+    private List<GeoCoordinates> polygonVertices = new ArrayList<>();
+    private List<PolygonWithId> polygonWithIds = new ArrayList<>();
+    private List<MapPolygon> poligonos = new ArrayList<>();
+    private List<MapMarker> markers = new ArrayList<>();
+    private MapPolygon mapPolygon =null;
+    private RecyclerView recyclerView;
+    private PolygonDatabaseHelper dbHelper;
 
     // INICIALIZACION DE LA VARIABLE TIPO SDKOPTIONS PARA CONTROLAR LOS CREDENCIALES
     @Override
@@ -168,6 +179,21 @@ public class MainActivity extends AppCompatActivity{
         btnDraw = findViewById(R.id.btnDraw);
         tilsearch = findViewById(R.id.tilsearch);
         navigatorLayout = findViewById(R.id.navigatorLayout);
+        zonasLayout = findViewById(R.id.zonasLayout);
+        btnZona = findViewById(R.id.btnZona);
+        recyclerView = findViewById(R.id.recyclerView);
+        // Crea una instancia del helper dela base de datos
+        dbHelper = new PolygonDatabaseHelper(this);
+        // Recupera la lista de polígonos de la base de datos
+        polygonWithIds = dbHelper.getAllPolygons();
+        Log.e("Prueba", polygonWithIds.toString());
+        if(polygonWithIds.size()>0){
+            // INICIALIZAMOS EL ADAPTADOR
+            PolygonAdapter adapter = new PolygonAdapter(polygonWithIds,polygonVertices,markers,mapPolygon,mapView,getApplicationContext(),dbHelper);
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+            recyclerView.setAdapter(adapter);
+        }
+
         // ASIGNAMOS FUNCIONAMIENTO EN CASO DE TOCAR EL ICONO DEL TextInputLayout DE LA DIRECCION 1
         tildireccion1.setEndIconOnClickListener(view1->{
             try {
@@ -293,6 +319,7 @@ public class MainActivity extends AppCompatActivity{
                         btnSearch.setVisibility(View.VISIBLE);
                         searchLayout.setVisibility(View.VISIBLE);
                         navigatorLayout.setVisibility(View.GONE);
+                        zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Enrutar":
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
@@ -308,6 +335,7 @@ public class MainActivity extends AppCompatActivity{
                             // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DE LA RUTA
                             routeLayout.setVisibility(View.VISIBLE);
                         }
+                        zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Dibujar":
                         // CAMBIAMOS EL COMENTARIO DEL TextInputLayout DEL CIRCULO
@@ -326,6 +354,7 @@ public class MainActivity extends AppCompatActivity{
                         btnDraw.setVisibility(View.VISIBLE);
                         searchLayout.setVisibility(View.VISIBLE);
                         navigatorLayout.setVisibility(View.GONE);
+                        zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Puntero":
                         // ESCONDEMOS ALGUNOS COMPONENTES
@@ -338,6 +367,32 @@ public class MainActivity extends AppCompatActivity{
                         llCameraTargetDot.setVisibility(View.VISIBLE);
                         datos.setVisibility(View.VISIBLE);
                         navigatorLayout.setVisibility(View.GONE);
+                        zonasLayout.setVisibility(View.GONE);
+                        break;
+                    case "Zonas":
+                        // ESCONDEMOS ALGUNOS COMPONENTES
+                        routeLayout.setVisibility(View.GONE);
+                        searchLayout.setVisibility(View.GONE);
+                        // AÑADIMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
+                        cameraExample.removeCameraObserver();
+                        // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DEL PUNTERO
+                        llCameraTargetDot.setVisibility(View.GONE);
+                        datos.setVisibility(View.GONE);
+                        navigatorLayout.setVisibility(View.GONE);
+                        zonasLayout.setVisibility(View.VISIBLE);
+                        // Configurar el listener de clics en el mapa
+                        mapView.getGestures().setTapListener(mapViewPoint-> {
+                            // Obtener las coordenadas geográficas del punto.
+                            GeoCoordinates geoCoordinates = mapView.viewToGeoCoordinates(mapViewPoint);
+                            // Agregar la coordenada clicada a la lista de vértices
+                            polygonVertices.add(geoCoordinates);
+                            // Agregar un marcador en la coordenada clicada
+                            addMapMarker(geoCoordinates, R.drawable.poi);
+                            // Si hay al menos tres vértices, dibujar el polígono
+                            if (polygonVertices.size() > 2) {
+                                drawPolygon(polygonVertices);
+                            }
+                        });
                         break;
                 }
                 return true;
@@ -510,6 +565,15 @@ public class MainActivity extends AppCompatActivity{
         isActiveTraffic = false;
         // DESACTIVAMOS EL TRAFICO
         trafficExample.disableAll();
+        // Eliminar cualquier polígono existente en el mapa
+        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+        if(polygonVertices.size()>0){
+            for (MapMarker marker : markers) {
+                mapView.getMapScene().removeMapMarker(marker);
+            }
+            markers.clear();
+            polygonVertices.clear();
+        }
     }
 
     // FUNCION IMPLEMENTADA POR LA CLASE AppCompatActivity
@@ -746,5 +810,66 @@ public class MainActivity extends AppCompatActivity{
         MapCameraAnimation animation = MapCameraAnimationFactory.flyTo(
                 geoCoordinatesUpdate, mapMeasureZoom, bowFactor, Duration.ofSeconds(3));
         camara.startAnimation(animation);
+    }
+    /**
+     * Método para agregar un marcador en el mapa en las coordenadas especificadas.
+     *
+     * @param geoCoordinates Las coordenadas donde se agregará el marcador.
+     */
+    private void addMapMarker(GeoCoordinates geoCoordinates, int resourceId) {
+        MapImage mapImage = MapImageFactory.fromResource(getApplicationContext().getResources(), resourceId);
+        MapMarker mapMarker = new MapMarker(geoCoordinates, mapImage);
+        mapView.getMapScene().addMapMarker(mapMarker);
+        markers.add(mapMarker);
+    }
+
+    /**
+     * Método para dibujar un polígono en el mapa usando una lista de vértices.
+     *
+     * @param vertices Lista de coordenadas que componen el polígono.
+     */
+    private void drawPolygon(List<GeoCoordinates> vertices) {
+        // Eliminar cualquier polígono existente en el mapa
+        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+
+        // Crear un objeto PolygonLite con los vértices
+        GeoPolygon geoPolygon=null;
+        try {
+            geoPolygon = new GeoPolygon(vertices);
+        } catch (InstantiationErrorException e) {
+            // Less than three vertices.
+            //return null;
+        }
+
+        Color fillColor = Color.valueOf(0, 0.56f, 0.54f, 0.63f); // RGBA
+        mapPolygon = new MapPolygon(geoPolygon, fillColor);
+
+        // Agregar el polígono al mapa
+        mapView.getMapScene().addMapPolygon(mapPolygon);
+    }
+    /**
+     * Método para dibujar un polígono en el mapa usando una lista de vértices.
+     *
+     * @param vertices Lista de coordenadas que componen el polígono.
+     */
+    public void addZona(View view) {
+        // Eliminar cualquier polígono existente en el mapa
+        if(mapPolygon!=null){
+            // Guarda el polígono en la base de datos
+            dbHelper.savePolygon(mapPolygon, "Mi Poligono "+(polygonWithIds.size()+1));
+            polygonWithIds = dbHelper.getAllPolygons();
+            PolygonAdapter adapter = new PolygonAdapter(polygonWithIds,polygonVertices,markers,mapPolygon,mapView,getApplicationContext(),dbHelper);
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+            recyclerView.setAdapter(adapter);
+            mapView.getMapScene().removeMapPolygon(mapPolygon);
+            mapPolygon=null;
+        }
+        if(polygonVertices.size()>0){
+            for (MapMarker marker : markers) {
+                mapView.getMapScene().removeMapMarker(marker);
+            }
+            markers.clear();
+            polygonVertices.clear();
+        }
     }
 }

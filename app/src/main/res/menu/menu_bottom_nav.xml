@@ -16,4 +16,8 @@
         android:id="@+id/action_puntero"
         android:title="Puntero"
         android:icon="@drawable/ic_push_pin"/>
+    <item
+        android:id="@+id/action_zonas"
+        android:title="Zonas"
+        android:icon="@drawable/ic_do_not_disturb"/>
 </menu>
