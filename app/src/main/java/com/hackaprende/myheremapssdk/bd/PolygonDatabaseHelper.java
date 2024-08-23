@@ -55,32 +55,6 @@ public class PolygonDatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Recupera todos los polígonos de la base de datos
-    /*public List<MapPolygon> getAllPolygons() {
-        List<MapPolygon> polygons = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-        String selectQuery = "SELECT * FROM " + TABLE_POLYGONS;
-        Cursor cursor = db.rawQuery(selectQuery, null);
-
-        if (cursor.moveToFirst()) {
-            do {
-                String verticesString = cursor.getString(cursor.getColumnIndex(COLUMN_VERTICES));
-                List<GeoCoordinates> vertices = deserializePolygon(verticesString);
-                GeoPolygon geometry = null;
-                try {
-                    geometry = new GeoPolygon(vertices);
-                } catch (InstantiationErrorException e) {
-                    throw new RuntimeException(e);
-                }
-                Color fillColor = Color.valueOf(0, 0.56f, 0.54f, 0.63f); // RGBA
-                MapPolygon polygon = new MapPolygon(geometry,fillColor);
-                polygons.add(polygon);
-            } while (cursor.moveToNext());
-        }
-
-        cursor.close();
-        db.close();
-        return polygons;
-    }*/
     public List<PolygonWithId> getAllPolygons() {
         List<PolygonWithId> polygons = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();

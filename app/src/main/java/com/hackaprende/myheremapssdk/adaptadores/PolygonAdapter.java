@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.android.material.button.MaterialButton;
 import com.hackaprende.myheremapssdk.MainActivity;
 import com.hackaprende.myheremapssdk.R;
 
@@ -95,8 +96,7 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
     // Clase interna para el ViewHolder
     public static class PolygonViewHolder extends RecyclerView.ViewHolder {
         public TextView polygonNameTextView;
-        public ImageView icon_edit;
-        public ImageView icon_delete;
+        public ImageView icon_edit, icon_delete;
 
         public PolygonViewHolder(View itemView, PolygonAdapter adapter) {
             super(itemView);
@@ -136,7 +136,7 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
                         double diagonalDistance = calculatePolygonDiagonalDistance(mapPolygon);
 
                         // Calcula el nivel de zoom adecuado (ajusta este valorsegún tus necesidades)
-                        double zoomLevel = 16 - Math.log(diagonalDistance / 1000) / Math.log(2);
+                        double zoomLevel = 15 - Math.log(diagonalDistance / 1000) / Math.log(2);
 
                         MapMeasure mapMeasure = new MapMeasure(MapMeasure.Kind.ZOOM_LEVEL, zoomLevel);
                         // Centra el mapa en el polígono y ajusta el nivel de zoom
@@ -157,6 +157,13 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
                         adapter.notifyItemRemoved(position); // Llama al método desde el adaptador
                         adapter.notifyItemRangeChanged(position, polygonWithIds.size());
                         dbHelper.deletePolygon(polygon.id);
+                        if(polygonVertices.size()>0){
+                            for (MapMarker marker : markers) {
+                                mapView.getMapScene().removeMapMarker(marker);
+                            }
+                            markers.clear();
+                            polygonVertices.clear();
+                        }
                     }
                 }
             });

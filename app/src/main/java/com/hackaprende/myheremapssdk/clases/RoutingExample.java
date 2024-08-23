@@ -215,7 +215,7 @@ public class RoutingExample {
         routeLayout.setVisibility(View.VISIBLE);
     }
 
-    public void addRoute() {
+    public void addRoute(List<MapPolygon> poligonos) {
         // Limpia los marcadores y las rutas anteriores
         clearMap();
         searchExample.clearMap();
@@ -246,6 +246,13 @@ public class RoutingExample {
                                         CarOptions routingOptions = new CarOptions();
                                         routingOptions.routeOptions.enableRouteHandle = true;
                                         // Definir las zonas de evitación
+                                        // GEOPOLYGON
+                                        List<GeoPolygon> avoidanceZones = new ArrayList<>();
+                                        for(MapPolygon polygonZone : poligonos){
+                                            avoidanceZones.add(polygonZone.getGeometry());
+                                        }
+                                        // Agrega las zonas de evitación a las opciones de enrutamiento
+                                        routingOptions.avoidanceOptions.avoidPolygonAreas=avoidanceZones;
                                         /*// GEOBOX
                                         List<GeoBox> avoidanceZones = new ArrayList<>();
 
@@ -282,7 +289,7 @@ public class RoutingExample {
                                         // Agrega las zonas de evitación a las opciones de enrutamiento
                                         routingOptions.avoidanceOptions.avoidBoundingBoxAreas = avoidanceZones;*/
                                         // GEOPOLYGON
-                                        List<GeoPolygon> avoidanceZones = new ArrayList<>();
+                                        /*List<GeoPolygon> avoidanceZones = new ArrayList<>();
 
                                         // Define la zona de evitación con forma de polígono (ajusta las coordenadas según sea necesario)
                                         List<GeoCoordinates> polygonZone = new ArrayList<>();
@@ -307,7 +314,7 @@ public class RoutingExample {
                                         avoidanceZones.add(polygonZone1);
 
                                         // Agrega las zonas de evitación a las opciones de enrutamiento
-                                        routingOptions.avoidanceOptions.avoidPolygonAreas.add(polygonZone1);
+                                        routingOptions.avoidanceOptions.avoidPolygonAreas.add(polygonZone1);*/
                                         // ROADFEAUTURES
                                         /**
                                          * CARPOOL_LANE: Carriles para vehículos compartidos.

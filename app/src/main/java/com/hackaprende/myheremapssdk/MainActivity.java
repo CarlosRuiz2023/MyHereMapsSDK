@@ -186,8 +186,10 @@ public class MainActivity extends AppCompatActivity{
         dbHelper = new PolygonDatabaseHelper(this);
         // Recupera la lista de polígonos de la base de datos
         polygonWithIds = dbHelper.getAllPolygons();
-        Log.e("Prueba", polygonWithIds.toString());
         if(polygonWithIds.size()>0){
+            for (PolygonWithId polygonWithId : polygonWithIds) {
+                poligonos.add(polygonWithId.polygon);
+            }
             // INICIALIZAMOS EL ADAPTADOR
             PolygonAdapter adapter = new PolygonAdapter(polygonWithIds,polygonVertices,markers,mapPolygon,mapView,getApplicationContext(),dbHelper);
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -303,6 +305,15 @@ public class MainActivity extends AppCompatActivity{
                 // VALIDAMOS POR TITULO DEL ITEM SELECCIONADO
                 switch (title) {
                     case "Buscar":
+                        // Eliminar cualquier polígono existente en el mapa
+                        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+                        if(polygonVertices.size()>0){
+                            for (MapMarker marker : markers) {
+                                mapView.getMapScene().removeMapMarker(marker);
+                            }
+                            markers.clear();
+                            polygonVertices.clear();
+                        }
                         // CAMBIAMOS EL COMENTARIO DEL TextInputLayout DE LA BUSUQEDA
                         tilsearch.setHelperText("Direccion.");
                         // CAMBIAMOS EL TEXTO DE MUESTRA DEL TextInputLayout DE LA BUSUQEDA
@@ -322,6 +333,15 @@ public class MainActivity extends AppCompatActivity{
                         zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Enrutar":
+                        // Eliminar cualquier polígono existente en el mapa
+                        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+                        if(polygonVertices.size()>0){
+                            for (MapMarker marker : markers) {
+                                mapView.getMapScene().removeMapMarker(marker);
+                            }
+                            markers.clear();
+                            polygonVertices.clear();
+                        }
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
                         cameraExample.removeCameraObserver();
                         trafficExample.setTapGestureHandler();
@@ -338,6 +358,15 @@ public class MainActivity extends AppCompatActivity{
                         zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Dibujar":
+                        // Eliminar cualquier polígono existente en el mapa
+                        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+                        if(polygonVertices.size()>0){
+                            for (MapMarker marker : markers) {
+                                mapView.getMapScene().removeMapMarker(marker);
+                            }
+                            markers.clear();
+                            polygonVertices.clear();
+                        }
                         // CAMBIAMOS EL COMENTARIO DEL TextInputLayout DEL CIRCULO
                         tilsearch.setHelperText("Radio (mtrs).");
                         // CAMBIAMOS EL TEXTO DE MUESTRA DEL TextInputLayout DEL CIRCULO
@@ -357,6 +386,15 @@ public class MainActivity extends AppCompatActivity{
                         zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Puntero":
+                        // Eliminar cualquier polígono existente en el mapa
+                        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+                        if(polygonVertices.size()>0){
+                            for (MapMarker marker : markers) {
+                                mapView.getMapScene().removeMapMarker(marker);
+                            }
+                            markers.clear();
+                            polygonVertices.clear();
+                        }
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         routeLayout.setVisibility(View.GONE);
                         searchLayout.setVisibility(View.GONE);
@@ -370,6 +408,15 @@ public class MainActivity extends AppCompatActivity{
                         zonasLayout.setVisibility(View.GONE);
                         break;
                     case "Zonas":
+                        // Eliminar cualquier polígono existente en el mapa
+                        if(mapPolygon!=null)mapView.getMapScene().removeMapPolygon(mapPolygon);
+                        if(polygonVertices.size()>0){
+                            for (MapMarker marker : markers) {
+                                mapView.getMapScene().removeMapMarker(marker);
+                            }
+                            markers.clear();
+                            polygonVertices.clear();
+                        }
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         routeLayout.setVisibility(View.GONE);
                         searchLayout.setVisibility(View.GONE);
@@ -517,7 +564,7 @@ public class MainActivity extends AppCompatActivity{
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DE AÑADIR RUTA
     public void addRouteButtonClicked(View view) {
         // Llama al método addRouteButtonClicked de la instancia de routingExample
-        routingExample.addRoute();
+        routingExample.addRoute(poligonos);
     }
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DEL TRAFICO
     public void viewTrafficButtonClicked(View view) {
@@ -858,6 +905,10 @@ public class MainActivity extends AppCompatActivity{
             // Guarda el polígono en la base de datos
             dbHelper.savePolygon(mapPolygon, "Mi Poligono "+(polygonWithIds.size()+1));
             polygonWithIds = dbHelper.getAllPolygons();
+            poligonos = new ArrayList<>();
+            for (PolygonWithId polygonWithId : polygonWithIds) {
+                poligonos.add(polygonWithId.polygon);
+            }
             PolygonAdapter adapter = new PolygonAdapter(polygonWithIds,polygonVertices,markers,mapPolygon,mapView,getApplicationContext(),dbHelper);
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
             recyclerView.setAdapter(adapter);

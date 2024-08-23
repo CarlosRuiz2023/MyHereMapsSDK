@@ -332,8 +332,7 @@
             android:id="@+id/recyclerView"
             android:layout_width="350dp"
             android:layout_height="400dp"
-            android:scrollbars="vertical"
-            android:background="#CCFFFFFF"/>
+            android:scrollbars="vertical"/>
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnZona"
             android:layout_width="50dp"
@@ -341,6 +340,7 @@
             app:icon="@drawable/ic_add_circle_outline"
             android:onClick="addZona"
             app:backgroundTint="@color/white"
+            android:layout_marginTop="20dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
