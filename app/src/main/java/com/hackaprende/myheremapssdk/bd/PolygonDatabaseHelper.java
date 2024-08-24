@@ -73,7 +73,7 @@ public class PolygonDatabaseHelper extends SQLiteOpenHelper {
                 } catch (InstantiationErrorException e) {
                     //throw new RuntimeException(e);
                 }
-                Color fillColor = Color.valueOf(0, 0.56f, 0.54f, 0.63f); // RGBA
+                Color fillColor = Color.valueOf(1f, 0f, 0f, 0.63f);  // RGBA
                 MapPolygon polygon = new MapPolygon(geometry,fillColor);
                 polygons.add(new PolygonWithId(id, polygon,name));
             } while (cursor.moveToNext());
@@ -141,7 +141,7 @@ public class PolygonDatabaseHelper extends SQLiteOpenHelper {
             } catch (InstantiationErrorException e) {
                 //throw new RuntimeException(e);
             }
-            Color fillColor = Color.valueOf(0, 0.56f, 0.54f, 0.63f); // RGBA
+            Color fillColor = Color.valueOf(1f, 0f, 0f, 0.63f); // RGBA
             polygon = new MapPolygon(geometry,fillColor);
         }
 

@@ -53,11 +53,11 @@ import java.util.List;
 
 public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonViewHolder> {
 
-    private static List<MapPolygon> poligonos = new ArrayList<>();
-    private static List<GeoCoordinates> polygonVertices = new ArrayList<>();
-    private static List<MapMarker> markers = new ArrayList<>();
+    public static List<MapPolygon> poligonos = new ArrayList<>();
+    public static List<GeoCoordinates> polygonVertices = new ArrayList<>();
+    public static List<MapMarker> markers = new ArrayList<>();
     private static MapView mapView = null;
-    private static MapPolygon mapPolygon = null;
+    public static MapPolygon mapPolygon = null;
     private static Context context;
     private static MapMarker selectedMarker = null;
     private static List<PolygonWithId> polygonWithIds = new ArrayList<>();
@@ -126,7 +126,7 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
                         mapPolygon = polygonWithIds.get(position).polygon;
                         polygonVertices = mapPolygon.getGeometry().vertices;
                         for (GeoCoordinates vertex : polygonVertices) {
-                            addMapMarker(vertex, R.drawable.poi);
+                            addMapMarker(vertex, R.drawable.red_dot);
                         }
                         mapView.getMapScene().addMapPolygon(mapPolygon); // Muestra el polígono
                         // Calcula el centro del polígono
@@ -179,7 +179,6 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
     private static void updatePolygonGeometry() {
         // Obtiene las nuevas coordenadas de los marcadores
         List<GeoCoordinates> newVertices = new ArrayList<>();
-        Log.e("Prueba", "updatePolygonGeometry: " + markers.size());
         for (MapMarker marker : markers) {
             newVertices.add(marker.getCoordinates());
         }
@@ -215,7 +214,6 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
 
                     // Obtener el MapMarker seleccionado
                     MapMarker topmostMapMarker = pickMapItemsResult.getMarkers().get(0);
-                    Log.e("Prueba", "onPickMapItems: " + topmostMapMarker);
 
                     // Verificar si el MapMarker es nulo
                     if (topmostMapMarker == null) {
@@ -243,7 +241,7 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
                     GeoCoordinates newCoordinates = mapView.viewToGeoCoordinates(point2D);
                     selectedMarker.setCoordinates(newCoordinates);
                     updatePolygonGeometry(); // Actualiza la geometría del polígono si es necesario
-                    MapImage mapImage = MapImageFactory.fromResource(context.getResources(), R.drawable.poi);
+                    MapImage mapImage = MapImageFactory.fromResource(context.getResources(), R.drawable.red_dot);
                     selectedMarker.setImage(mapImage);
                     selectedMarker = null; // Deselecciona el marcador
                     mapView.getGestures().setTapListener(touchPoint -> pickMapMarker(touchPoint));
