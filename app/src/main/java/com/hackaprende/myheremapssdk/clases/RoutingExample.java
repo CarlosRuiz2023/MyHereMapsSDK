@@ -136,6 +136,7 @@ public class RoutingExample {
     private boolean isCameraTrackingEnabled = true;
     private Button releaseCameraButton, stopSimulationButton;
     private ImageView turnIcon;
+
     // Constructor de la clase
     public RoutingExample(Context context, MapView mapView, SearchExample searchExample) {
         // Inicialización del contexto,la vista del mapa y la clase de searchExample
@@ -171,7 +172,7 @@ public class RoutingExample {
         }
         try {
             // Inicialización del motor de búsqueda
-            navigationExample = new NavigationExample(context, mapView,messageView,turnIcon,this);
+            navigationExample = new NavigationExample(context, mapView, messageView, turnIcon, this);
         } catch (Exception e) {
             // Manejo de la excepción de inicialización
             //throw new RuntimeException("Initialization of SearchEngine failed: " + e.name());
@@ -195,10 +196,10 @@ public class RoutingExample {
     }
 
     public void toggleTrackingButtonClicked() {
-        if(isCameraTrackingEnabled){
+        if (isCameraTrackingEnabled) {
             navigationExample.stopCameraTracking();
             isCameraTrackingEnabled = false;
-        }else{
+        } else {
             navigationExample.startCameraTracking();
             isCameraTrackingEnabled = true;
         }
@@ -215,7 +216,7 @@ public class RoutingExample {
         routeLayout.setVisibility(View.VISIBLE);
     }
 
-    public void addRoute(List<MapPolygon> poligonos) {
+    public void addRoute(List<MapPolygon> poligonos, List<GeoCoordinates> puntos) {
         // Limpia los marcadores y las rutas anteriores
         clearMap();
         searchExample.clearMap();
@@ -223,8 +224,8 @@ public class RoutingExample {
         String address1 = direccion1.getText().toString();
         String address2 = direccion2.getText().toString();
         // Verificamos que los textos no estén vacíos
-        if (address1.length()>0) {
-            if (address2.length()>0) {
+        if (address1.length() > 0) {
+            if (address2.length() > 0) {
                 // First search for the start coordinates
                 searchInViewport1(address1, new GeoCoordinatesCallback() {
                     @Override
@@ -240,19 +241,42 @@ public class RoutingExample {
                                         // Create Waypoints
                                         Waypoint startWaypoint = new Waypoint(startCoordinates);
                                         Waypoint destinationWaypoint = new Waypoint(destinationCoordinates);
-                                        // Create a list of Waypoints
-                                        List<Waypoint> waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
+                                        List<Waypoint> waypoints = new ArrayList<>();
+                                        if (puntos.size() > 0) {
+                                            waypoints.add(startWaypoint);
+                                            List<GeoCoordinates> ruta = new ArrayList<>(Arrays.asList(startCoordinates, destinationCoordinates));
+                                            GeoPolyline routeLine = null;
+                                            try {
+                                                routeLine = new GeoPolyline(ruta);
+                                            } catch (InstantiationErrorException e) {
+                                                //throw new RuntimeException(e);
+                                            }
+                                            double threshold = 800000; // Umbral de distancia en metros
+                                            for (GeoCoordinates punto : puntos) {
+                                                double distanceToRoute = distanceToPolyline(punto, routeLine);
+                                                Log.e("Prueba", "La distancia es: " + distanceToRoute);
+                                                if (distanceToRoute <= threshold) {
+                                                    waypoints.add(new Waypoint(punto));
+                                                }
+                                            }
+                                            waypoints.add(destinationWaypoint);
+                                        } else {
+                                            // Create a list of Waypoints
+                                            waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
+                                        }
                                         // A route handle is required for the DynamicRoutingEngine to get updates on traffic-optimized routes.
                                         CarOptions routingOptions = new CarOptions();
                                         routingOptions.routeOptions.enableRouteHandle = true;
                                         // Definir las zonas de evitación
                                         // GEOPOLYGON
-                                        List<GeoPolygon> avoidanceZones = new ArrayList<>();
-                                        for(MapPolygon polygonZone : poligonos){
-                                            avoidanceZones.add(polygonZone.getGeometry());
+                                        if (poligonos.size() > 0) {
+                                            List<GeoPolygon> avoidanceZones = new ArrayList<>();
+                                            for (MapPolygon polygonZone : poligonos) {
+                                                avoidanceZones.add(polygonZone.getGeometry());
+                                            }
+                                            // Agrega las zonas de evitación a las opciones de enrutamiento
+                                            routingOptions.avoidanceOptions.avoidPolygonAreas = avoidanceZones;
                                         }
-                                        // Agrega las zonas de evitación a las opciones de enrutamiento
-                                        routingOptions.avoidanceOptions.avoidPolygonAreas=avoidanceZones;
                                         /*// GEOBOX
                                         List<GeoBox> avoidanceZones = new ArrayList<>();
 
@@ -394,7 +418,7 @@ public class RoutingExample {
                                                             // Show route on map
                                                             showRouteOnMap(route);
                                                             // Show route details
-                                                            showRouteDetails(route,false);
+                                                            showRouteDetails(route, false);
                                                             //logRouteRailwayCrossingDetails(route);
                                                             //logRouteSectionDetails(route);
                                                             //logRouteViolations(route);
@@ -405,7 +429,7 @@ public class RoutingExample {
                                                             GeoCoordinates center = calculateGeoBoxCenter(geoBox);
                                                             // Configurar la cámara para que se ajuste a la extensión de la ruta
                                                             //camara.setTarget(center);
-                                                            camara.lookAt(geoBox,new GeoOrientationUpdate(center.latitude,center.longitude));
+                                                            camara.lookAt(geoBox, new GeoOrientationUpdate(center.latitude, center.longitude));
                                                             // Ajustar el nivel de zoom para que toda la ruta sea visible en el mapa
                                                             //camara.setZoomLevel(adjustZoomLevel(geoBox));
                                                             //animateZoom(adjustZoomLevel(geoBox));
@@ -431,17 +455,18 @@ public class RoutingExample {
                 // Show error message
                 Toast.makeText(context, "La direccion2 esta vacia", Toast.LENGTH_SHORT).show();
             }
-        }else{
+        } else {
             // Show error message
             Toast.makeText(context, "La direccion1 esta vacia", Toast.LENGTH_SHORT).show();
         }
     }
+
     public void addRoute(GeoCoordinates startGeoCoordinates, GeoCoordinates destinationGeoCoordinates) {
         // Limpia los marcadores y las rutas anteriores
         clearMap();
         // Disables positioning.
         navigationExample.stopNavigation(false);
-        isCameraTrackingEnabled=true;
+        isCameraTrackingEnabled = true;
         // Create Waypoints
         Waypoint startWaypoint = new Waypoint(startGeoCoordinates);
         Waypoint destinationWaypoint = new Waypoint(destinationGeoCoordinates);
@@ -531,6 +556,7 @@ public class RoutingExample {
             }
         }
     }
+
     private void logTollDetails(Route route) {
         for (Section section : route.getSections()) {
             // The spans that make up the polyline along which tolls are required or
@@ -740,7 +766,7 @@ public class RoutingExample {
             mapView.getMapScene().removeMapPolyline(mapPolyline);
         }
         route = null;
-        isCameraTrackingEnabled=true;
+        isCameraTrackingEnabled = true;
         // Limpia la lista de rutas
         mapPolylines.clear();
     }
@@ -849,10 +875,12 @@ public class RoutingExample {
     private static class SearchResultMetadata implements CustomMetadataValue {
         // Definimos una variable de tipo Place para almacenar el resultado de la búsqueda
         public final Place searchResult;
+
         // Constructor de la clase
         public SearchResultMetadata(Place searchResult) {
             this.searchResult = searchResult;
         }
+
         @NonNull
         @Override
         public String getTag() {
@@ -860,6 +888,7 @@ public class RoutingExample {
             return "SearchResult Metadata";
         }
     }
+
     private GeoBox getMapViewGeoBox() {
         //return mapView.getCamera().getBoundingBox();
         // GeoBox mundial
@@ -902,6 +931,7 @@ public class RoutingExample {
                 new GeoCoordinates(maxLat, maxLon)
         );
     }
+
     private GeoCoordinates calculateGeoBoxCenter(GeoBox geoBox) {
         // Calcular el centro del GeoBox
         double centerLat = (geoBox.northEastCorner.latitude + geoBox.southWestCorner.latitude) / 2;
@@ -909,6 +939,7 @@ public class RoutingExample {
         // Devolver el centro del GeoBox
         return new GeoCoordinates(centerLat, centerLon);
     }
+
     private double adjustZoomLevel(GeoBox geoBox) {
         // Ejemplo de cálculo basado en la latitud y longitud del GeoBox
         double latDiff = geoBox.northEastCorner.latitude - geoBox.southWestCorner.latitude;
@@ -916,10 +947,11 @@ public class RoutingExample {
         // La siguiente línea es un ejemplo y necesitarás ajustarla según cómo tu API maneje el zoom
         double maxDiff = Math.max(latDiff, lonDiff);
         // Calcular el nivel de zoom basado en el tamaño del GeoBox
-        double zoomLevel = (Math.log(360 / maxDiff) / Math.log(2))-0.5;
+        double zoomLevel = (Math.log(360 / maxDiff) / Math.log(2)) - 0.5;
         // Suponiendo que tu API de mapas tiene un método para ajustar el nivel de zoom basado en una GeoBox
         return zoomLevel;
     }
+
     // Método para animar el zoom suavemente
     private void animateZoom(double targetZoomLevel) {
         // Toma el nivel de zoom actual
@@ -941,6 +973,7 @@ public class RoutingExample {
         // Inicia la animación
         animator.start();
     }
+
     /*private void startGuidance(Route route) {
         try {
             // Without a route set, this starts tracking mode.
@@ -989,7 +1022,7 @@ public class RoutingExample {
     // Función para obtener los IDs de segmento de un objeto Place
     private List<SegmentReference> obtenerSegmentReferences(Place place) {
         List<SegmentReference> segmentReferences = new ArrayList<>();
-        List<GeoCoordinates> accessPoints= place.getAccessPoints();
+        List<GeoCoordinates> accessPoints = place.getAccessPoints();
 
         if (accessPoints != null) {
             for (GeoCoordinates accessPoint : accessPoints) {
@@ -1004,5 +1037,45 @@ public class RoutingExample {
         }
 
         return segmentReferences;
+    }
+
+    private static double distanceToPolyline(GeoCoordinates point, GeoPolyline polyline) {
+        double minDistance = Double.MAX_VALUE;
+        List<GeoCoordinates> vertices = polyline.vertices;
+
+        for (int i = 0; i < vertices.size() - 1; i++) {
+            GeoCoordinates start = vertices.get(i);
+            GeoCoordinates end = vertices.get(i + 1);
+            double distance = distanceToSegment(point, start, end);
+            minDistance = Math.min(minDistance, distance);
+        }
+        return minDistance;
+    }
+    private static double distanceToSegment(GeoCoordinates point, GeoCoordinates start, GeoCoordinates end) {
+        double lat1 = Math.toRadians(start.latitude);
+        double lon1 = Math.toRadians(start.longitude);
+        double lat2 = Math.toRadians(end.latitude);
+        double lon2 = Math.toRadians(end.longitude);
+        double lat3 = Math.toRadians(point.latitude);
+        double lon3 = Math.toRadians(point.longitude);
+
+        double y = Math.sin(lon3 - lon1) * Math.cos(lat3);
+        double x = Math.cos(lat1) * Math.sin(lat3) - Math.sin(lat1) * Math.cos(lat3) * Math.cos(lon3 - lon1);
+        double bearing1 = Math.atan2(y, x);
+
+        y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+        x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+        double bearing2 = Math.atan2(y, x);
+
+        double angle = bearing2 - bearing1;
+        if (angle < 0) {
+            angle += 2 * Math.PI;
+        }
+
+        double distance = Math.asin(Math.sin(lat1) * Math.sin(lat3) +
+                Math.cos(lat1) * Math.cos(lat3) * Math.cos(lon3 - lon1)) * 6371000; // Earth radius in meters
+
+        double distanceToSegment = distance * Math.sin(angle);
+        return Math.abs(distanceToSegment);
     }
 }

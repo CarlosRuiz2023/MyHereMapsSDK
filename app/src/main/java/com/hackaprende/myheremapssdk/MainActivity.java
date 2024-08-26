@@ -59,6 +59,7 @@ import com.hackaprende.myheremapssdk.adaptadores.PolygonAdapter;
 import com.hackaprende.myheremapssdk.bd.PolygonDatabaseHelper;
 import com.hackaprende.myheremapssdk.clases.AvoidZonesExample;
 import com.hackaprende.myheremapssdk.clases.CameraExample;
+import com.hackaprende.myheremapssdk.clases.ControlPointsExample;
 import com.hackaprende.myheremapssdk.clases.MapObjectsExample;
 import com.hackaprende.myheremapssdk.clases.TrafficExample;
 import com.hackaprende.myheremapssdk.clases.SearchExample;
@@ -123,7 +124,7 @@ public class MainActivity extends AppCompatActivity{
     // INICIALIZACION DE LA VARIABLE TIPO BottomNavigationView PARA EL CONTROL DE LA BARRA DE NAVEGACION
     private BottomNavigationView bottomNavigation;
     // INICIALIZACION DE LAS VARIABLES TIPO LinearLayout
-    private LinearLayout searchLayout,routeLayout,navigatorLayout,datos,llCameraTargetDot,zonasLayout;
+    private LinearLayout searchLayout,routeLayout,navigatorLayout,datos,llCameraTargetDot,zonasLayout,puntosLayout;
     // INICIALIZACION DE LAS VARIABLES TIPO MaterialButton
     private MaterialButton btnSearch,btnDraw,btnZona;
     // INICIALIZACION DE LAS VARIABLES TIPO TextInputLayout
@@ -134,9 +135,10 @@ public class MainActivity extends AppCompatActivity{
     final long zoomAnimationDuration = 1000L;
     // INICIALIZACION DE LA VARIABLE TIPO int PARA EL CONTADOR DE ESTILOS
     private int styleCounter=0;
-    private RecyclerView recyclerView;
+    private RecyclerView recyclerView, recyclerViewPuntos;
 
     private AvoidZonesExample avoidZonesExample;
+    private ControlPointsExample controlPointsExample;
 
     // INICIALIZACION DE LA VARIABLE TIPO SDKOPTIONS PARA CONTROLAR LOS CREDENCIALES
     @Override
@@ -181,7 +183,10 @@ public class MainActivity extends AppCompatActivity{
         zonasLayout = findViewById(R.id.zonasLayout);
         btnZona = findViewById(R.id.btnZona);
         recyclerView = findViewById(R.id.recyclerView);
+        recyclerViewPuntos = findViewById(R.id.recyclerViewPuntos);
+        puntosLayout = findViewById(R.id.puntosLayout);
         avoidZonesExample = new AvoidZonesExample(this,mapView,recyclerView,getLayoutInflater());
+        controlPointsExample = new ControlPointsExample(this,mapView,recyclerViewPuntos,getLayoutInflater());
 
         // ASIGNAMOS FUNCIONAMIENTO EN CASO DE TOCAR EL ICONO DEL TextInputLayout DE LA DIRECCION 1
         tildireccion1.setEndIconOnClickListener(view1->{
@@ -293,6 +298,7 @@ public class MainActivity extends AppCompatActivity{
                 switch (title) {
                     case "Buscar":
                         avoidZonesExample.cleanPolygon();
+                        controlPointsExample.cleanPoint();
                         // CAMBIAMOS EL COMENTARIO DEL TextInputLayout DE LA BUSUQEDA
                         tilsearch.setHelperText("Direccion.");
                         // CAMBIAMOS EL TEXTO DE MUESTRA DEL TextInputLayout DE LA BUSUQEDA
@@ -310,9 +316,11 @@ public class MainActivity extends AppCompatActivity{
                         searchLayout.setVisibility(View.VISIBLE);
                         navigatorLayout.setVisibility(View.GONE);
                         zonasLayout.setVisibility(View.GONE);
+                        puntosLayout.setVisibility(View.GONE);
                         break;
                     case "Enrutar":
                         avoidZonesExample.cleanPolygon();
+                        controlPointsExample.cleanPoint();
                         // REMOVEMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
                         cameraExample.removeCameraObserver();
                         trafficExample.setTapGestureHandler();
@@ -327,9 +335,11 @@ public class MainActivity extends AppCompatActivity{
                             routeLayout.setVisibility(View.VISIBLE);
                         }
                         zonasLayout.setVisibility(View.GONE);
+                        puntosLayout.setVisibility(View.GONE);
                         break;
                     case "Dibujar":
                         avoidZonesExample.cleanPolygon();
+                        controlPointsExample.cleanPoint();
                         // CAMBIAMOS EL COMENTARIO DEL TextInputLayout DEL CIRCULO
                         tilsearch.setHelperText("Radio (mtrs).");
                         // CAMBIAMOS EL TEXTO DE MUESTRA DEL TextInputLayout DEL CIRCULO
@@ -347,9 +357,11 @@ public class MainActivity extends AppCompatActivity{
                         searchLayout.setVisibility(View.VISIBLE);
                         navigatorLayout.setVisibility(View.GONE);
                         zonasLayout.setVisibility(View.GONE);
+                        puntosLayout.setVisibility(View.GONE);
                         break;
                     case "Puntero":
                         avoidZonesExample.cleanPolygon();
+                        controlPointsExample.cleanPoint();
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         routeLayout.setVisibility(View.GONE);
                         searchLayout.setVisibility(View.GONE);
@@ -361,9 +373,11 @@ public class MainActivity extends AppCompatActivity{
                         datos.setVisibility(View.VISIBLE);
                         navigatorLayout.setVisibility(View.GONE);
                         zonasLayout.setVisibility(View.GONE);
+                        puntosLayout.setVisibility(View.GONE);
                         break;
                     case "Zonas":
                         avoidZonesExample.cleanPolygon();
+                        controlPointsExample.cleanPoint();
                         // ESCONDEMOS ALGUNOS COMPONENTES
                         routeLayout.setVisibility(View.GONE);
                         searchLayout.setVisibility(View.GONE);
@@ -375,6 +389,22 @@ public class MainActivity extends AppCompatActivity{
                         navigatorLayout.setVisibility(View.GONE);
                         zonasLayout.setVisibility(View.VISIBLE);
                         avoidZonesExample.startGestures();
+                        puntosLayout.setVisibility(View.GONE);
+                        break;
+                    case "Puntos":
+                        avoidZonesExample.cleanPolygon();
+                        // ESCONDEMOS ALGUNOS COMPONENTES
+                        routeLayout.setVisibility(View.GONE);
+                        searchLayout.setVisibility(View.GONE);
+                        // AÑADIMOS EL CONTROL DE LA CLASE CameraExample PARA EL CONTROL DEL PUNTERO
+                        cameraExample.removeCameraObserver();
+                        // MOSTRAMOS LOS COMPONENTES ESPECIFICAMENTE DEL PUNTERO
+                        llCameraTargetDot.setVisibility(View.GONE);
+                        datos.setVisibility(View.GONE);
+                        navigatorLayout.setVisibility(View.GONE);
+                        zonasLayout.setVisibility(View.GONE);
+                        puntosLayout.setVisibility(View.VISIBLE);
+                        controlPointsExample.startGestures();
                         break;
                 }
                 return true;
@@ -499,7 +529,7 @@ public class MainActivity extends AppCompatActivity{
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DE AÑADIR RUTA
     public void addRouteButtonClicked(View view) {
         // Llama al método addRouteButtonClicked de la instancia de routingExample
-        routingExample.addRoute(avoidZonesExample.poligonos);
+        routingExample.addRoute(avoidZonesExample.poligonos,controlPointsExample.points);
     }
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DEL TRAFICO
     public void viewTrafficButtonClicked(View view) {
@@ -549,6 +579,8 @@ public class MainActivity extends AppCompatActivity{
         trafficExample.disableAll();
         // Eliminar cualquier polígono existente en el mapa
         avoidZonesExample.cleanPolygon();
+        // Eliminar cualquier punto existente en el mapa
+        controlPointsExample.cleanPoint();
     }
 
     // FUNCION IMPLEMENTADA POR LA CLASE AppCompatActivity
@@ -797,6 +829,19 @@ public class MainActivity extends AppCompatActivity{
             avoidZonesExample.showSavePolygonDialog();
         } else {
             Toast.makeText(this, "Genere un polígono válido antes de guardar", Toast.LENGTH_SHORT).show();
+        }
+    }
+    /**
+     * Método para dibujar un polígono en el mapa usando una lista de vértices.
+     *
+     * @param vertices Lista de coordenadas que componen el polígono.
+     */
+    public void addPunto(View view) {
+        // Eliminar cualquier polígono existente en el mapa
+        if(controlPointsExample.mapMarker!=null){
+            controlPointsExample.showSavePointDialog();
+        } else {
+            Toast.makeText(this, "De click en el mapa para agregar un punto", Toast.LENGTH_SHORT).show();
         }
     }
 }

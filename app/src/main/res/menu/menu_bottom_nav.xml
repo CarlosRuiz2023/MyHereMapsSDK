@@ -8,10 +8,10 @@
         android:id="@+id/action_enrutar"
         android:title="Enrutar"
         android:icon="@drawable/ic_route"/>
-    <item
+    <!--<item
         android:id="@+id/action_dibujar"
         android:title="Dibujar"
-        android:icon="@drawable/ic_draw"/>
+        android:icon="@drawable/ic_draw"/>-->
     <item
         android:id="@+id/action_puntero"
         android:title="Puntero"
@@ -20,4 +20,8 @@
         android:id="@+id/action_zonas"
         android:title="Zonas"
         android:icon="@drawable/ic_do_not_disturb"/>
+    <item
+        android:id="@+id/action_puntos"
+        android:title="Puntos"
+        android:icon="@drawable/ic_add_circle_outline"/>
 </menu>

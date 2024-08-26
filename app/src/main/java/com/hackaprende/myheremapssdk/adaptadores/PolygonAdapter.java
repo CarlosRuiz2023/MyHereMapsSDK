@@ -195,7 +195,7 @@ public class PolygonAdapter extends RecyclerView.Adapter<PolygonAdapter.PolygonV
         if (mapPolygon != null) {
             mapPolygon.setGeometry(newGeometry);
         }
-        dbHelper.savePolygon(polygonWithIds.get(position).id,mapPolygon,"Mi Poligono "+(polygonWithIds.size()+1));
+        dbHelper.savePolygon(polygonWithIds.get(position).id,mapPolygon,polygonWithIds.get(position).name);
     }
 
     private static void pickMapMarker(final Point2D touchPoint) {
