@@ -105,13 +105,12 @@ public class PointAdapter extends RecyclerView.Adapter<PointAdapter.PointViewHol
                     int position = getAdapterPosition();
                     if (position != RecyclerView.NO_POSITION) {
                         PointWithId punto = poinstWithIds.get(position);
-                        addMapMarker(punto.punto, R.drawable.red_dot);
-                        mapView.getMapScene().removeMapMarker(selectedMarker); // Elimina el polígono del mapa
+                        if(selectedMarker!=null)mapView.getMapScene().removeMapMarker(selectedMarker);
                         poinstWithIds.remove(position);
                         adapter.notifyItemRemoved(position); // Llama al método desde el adaptador
                         adapter.notifyItemRangeChanged(position, poinstWithIds.size());
                         dbHelper.deleteCoordinate(punto.id);
-                        selectedMarker = null;
+                        if(selectedMarker!=null)selectedMarker = null;
                     }
                 }
             });

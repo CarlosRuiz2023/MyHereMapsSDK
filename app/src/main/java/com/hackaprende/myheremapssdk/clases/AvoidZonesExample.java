@@ -52,13 +52,13 @@ public class AvoidZonesExample {
         dbHelper = new PolygonDatabaseHelper(context);
         // Recupera la lista de polígonos de la base de datos
         polygonWithIds = dbHelper.getAllPolygons();
+        recyclerView.setLayoutManager(new LinearLayoutManager(context));
         if(polygonWithIds.size()>0){
             for (PolygonWithId polygonWithId : polygonWithIds) {
                 poligonos.add(polygonWithId.polygon);
             }
             // INICIALIZAMOS EL ADAPTADOR
             adapter = new PolygonAdapter(polygonWithIds,polygonVertices,markers,mapPolygon,mapView,context,dbHelper);
-            recyclerView.setLayoutManager(new LinearLayoutManager(context));
             recyclerView.setAdapter(adapter);
         }
     }

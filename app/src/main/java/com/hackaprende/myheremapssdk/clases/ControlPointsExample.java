@@ -52,13 +52,13 @@ public class ControlPointsExample {
         dbHelper = new GeoCoordinateDatabaseHelper(context);
         // Recupera la lista de polígonos de la base de datos
         pointsWithIds = dbHelper.getAllCoordinates();
+        recyclerView.setLayoutManager(new LinearLayoutManager(context));
         if(pointsWithIds.size()>0){
             for (PointWithId point : pointsWithIds) {
                 points.add(point.punto);
             }
             // INICIALIZAMOS EL ADAPTADOR
             adapter = new PointAdapter(pointsWithIds,mapMarker,mapView,context,dbHelper);
-            recyclerView.setLayoutManager(new LinearLayoutManager(context));
             recyclerView.setAdapter(adapter);
         }
     }
