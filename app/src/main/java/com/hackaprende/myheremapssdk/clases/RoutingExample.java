@@ -251,10 +251,11 @@ public class RoutingExample {
                                             } catch (InstantiationErrorException e) {
                                                 //throw new RuntimeException(e);
                                             }
-                                            double threshold = 800000; // Umbral de distancia en metros
+                                            // Umbral de distancia en metros
+                                            double threshold = 4000000;
                                             for (GeoCoordinates punto : puntos) {
                                                 double distanceToRoute = distanceToPolyline(punto, routeLine);
-                                                Log.e("Prueba", "La distancia es: " + distanceToRoute);
+                                                //Log.e("Prueba", "La distancia es: " + distanceToRoute);
                                                 if (distanceToRoute <= threshold) {
                                                     waypoints.add(new Waypoint(punto));
                                                 }

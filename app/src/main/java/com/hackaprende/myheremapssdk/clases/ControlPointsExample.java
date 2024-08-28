@@ -77,7 +77,7 @@ public class ControlPointsExample {
     public void showSavePointDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         // Infla el layout personalizado
-        View dialogView = layoutInflater.inflate(R.layout.dialog_save_polygon, null);
+        View dialogView = layoutInflater.inflate(R.layout.dialog_save_point, null);
         builder.setView(dialogView);
 
         // Obtén las referencias a los elementos del layout
