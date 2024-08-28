@@ -64,6 +64,7 @@ import com.hackaprende.myheremapssdk.clases.MapObjectsExample;
 import com.hackaprende.myheremapssdk.clases.TrafficExample;
 import com.hackaprende.myheremapssdk.clases.SearchExample;
 import com.hackaprende.myheremapssdk.interfaces.ReverseGeocodingCallback;
+import com.hackaprende.myheremapssdk.modelos.PointWithId;
 import com.hackaprende.myheremapssdk.modelos.PolygonWithId;
 import com.hackaprende.myheremapssdk.permisos.PermissionsRequestor;
 import com.here.sdk.core.Anchor2D;
@@ -528,8 +529,12 @@ public class MainActivity extends AppCompatActivity{
     }
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DE AÑADIR RUTA
     public void addRouteButtonClicked(View view) {
+        List<GeoCoordinates> puntos = new ArrayList<>();
+        for(PointWithId pointWithId:controlPointsExample.pointsWithIds){
+            puntos.add(pointWithId.punto);
+        }
         // Llama al método addRouteButtonClicked de la instancia de routingExample
-        routingExample.addRoute(avoidZonesExample.poligonos,controlPointsExample.points);
+        routingExample.addRoute(avoidZonesExample.poligonos,puntos);
     }
     // FUNCION QUE SE EJECUTA AL PRESIONAR EL BOTON DEL TRAFICO
     public void viewTrafficButtonClicked(View view) {

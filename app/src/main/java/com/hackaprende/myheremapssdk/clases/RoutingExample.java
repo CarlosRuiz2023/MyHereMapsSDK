@@ -25,6 +25,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.media.MediaRouter2;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -253,12 +254,23 @@ public class RoutingExample {
                                             }
                                             // Umbral de distancia en metros
                                             double threshold = 4000000;
+                                            // Crea una lista de pares (waypoint, distancia)
+                                            List<Pair<Waypoint, Double>> waypointDistances = new ArrayList<>();
                                             for (GeoCoordinates punto : puntos) {
+                                                addCircleMapMarker(punto, R.drawable.red_dot);
                                                 double distanceToRoute = distanceToPolyline(punto, routeLine);
-                                                //Log.e("Prueba", "La distancia es: " + distanceToRoute);
                                                 if (distanceToRoute <= threshold) {
-                                                    waypoints.add(new Waypoint(punto));
+                                                    double distanceToMidPoint = punto.distanceTo(startGeoCoordinates);
+                                                    waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToMidPoint));
                                                 }
+                                            }
+
+                                            // Ordena la lista de pares por distancia al punto intermedio
+                                            waypointDistances.sort((p1, p2) -> Double.compare(p1.second, p2.second));
+
+                                            // Agrega los waypoints ordenados a la lista final
+                                            for (Pair<Waypoint, Double> pair : waypointDistances) {
+                                                waypoints.add(pair.first);
                                             }
                                             waypoints.add(destinationWaypoint);
                                         } else {
