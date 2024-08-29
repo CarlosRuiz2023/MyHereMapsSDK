@@ -243,64 +243,8 @@ public class RoutingExample {
                                         Waypoint startWaypoint = new Waypoint(startCoordinates);
                                         Waypoint destinationWaypoint = new Waypoint(destinationCoordinates);
                                         List<Waypoint> waypoints = new ArrayList<>();
-                                        if (puntos.size() > 0) {
-                                            waypoints.add(startWaypoint);
-                                            List<GeoCoordinates> ruta = new ArrayList<>(Arrays.asList(startCoordinates, destinationCoordinates));
-                                            GeoPolyline routeLine = null;
-                                            try {
-                                                routeLine = new GeoPolyline(ruta);
-                                            } catch (InstantiationErrorException e) {
-                                                //throw new RuntimeException(e);
-                                            }
-                                            // Calcula el punto intermedio
-                                            GeoCoordinates midPoint = new GeoCoordinates(
-                                                    (startCoordinates.latitude + destinationCoordinates.latitude) / 2,
-                                                    (startCoordinates.longitude + destinationCoordinates.longitude) / 2
-                                            );
-                                            // ...
-                                            double routeLength = startCoordinates.distanceTo(destinationCoordinates);
-                                            int intermediatePointsCount = (int) Math.round(routeLength / 5000);
-                                            double threshold = routeLength * 0.5; // 50% de la longitud de la ruta
-                                            if(threshold > 10000){
-                                                threshold = 10000;
-                                            }
-
-                                            // Obtiene puntos intermedios
-                                            List<GeoCoordinates> intermediatePoints = getIntermediatePoints(routeLine, intermediatePointsCount ,routeLength); // Divide la ruta en 3 segmentos
-
-                                            // Crea una lista de pares (waypoint, distancia)
-                                            List<Pair<Waypoint, Double>> waypointDistances = new ArrayList<>();
-                                            for (GeoCoordinates punto : puntos) {
-                                                addCircleMapMarker(punto, R.drawable.red_dot);
-                                                double distanceToStart = punto.distanceTo(startGeoCoordinates);
-                                                double distanceToDestination = punto.distanceTo(destinationGeoCoordinates);
-                                                if (intermediatePoints.size() > 0){
-                                                    for (GeoCoordinates intermediatePoint : intermediatePoints) {
-                                                        double distanceToIntermediate = punto.distanceTo(intermediatePoint);
-                                                        if (distanceToIntermediate <= threshold || distanceToStart <= threshold || distanceToDestination <= threshold) {
-                                                            waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToStart));
-                                                            break; // Si el punto está cerca de un punto intermedio, no es necesario verificar los demás
-                                                        }
-                                                    }
-                                                }else{
-                                                    if (distanceToStart <= threshold || distanceToDestination <= threshold) {
-                                                        waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToStart));
-                                                        break; // Si el punto está cerca de un punto intermedio, no es necesario verificar los demás
-                                                    }
-                                                }
-                                            }
-                                            // Ordena la lista de pares por distancia al punto intermedio
-                                            waypointDistances.sort((p1, p2) -> Double.compare(p1.second, p2.second));
-
-                                            // Agrega los waypoints ordenados a la lista final
-                                            for (Pair<Waypoint, Double> pair : waypointDistances) {
-                                                waypoints.add(pair.first);
-                                            }
-                                            waypoints.add(destinationWaypoint);
-                                        } else {
-                                            // Create a list of Waypoints
-                                            waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
-                                        }
+                                        waypoints.add(startWaypoint);
+                                        waypoints.add(destinationWaypoint);
                                         // A route handle is required for the DynamicRoutingEngine to get updates on traffic-optimized routes.
                                         CarOptions routingOptions = new CarOptions();
                                         routingOptions.routeOptions.enableRouteHandle = true;
@@ -314,133 +258,6 @@ public class RoutingExample {
                                             // Agrega las zonas de evitación a las opciones de enrutamiento
                                             routingOptions.avoidanceOptions.avoidPolygonAreas = avoidanceZones;
                                         }
-                                        /*// GEOBOX
-                                        List<GeoBox> avoidanceZones = new ArrayList<>();
-
-                                        // Define la zona de evitación rectangular (ajusta las coordenadas según sea necesario)
-                                        GeoCoordinates topLeft = new GeoCoordinates(21.126205, -101.598454);
-                                        GeoCoordinates bottomRight = new GeoCoordinates(21.100375, -101.573880);
-                                        GeoBox avoidanceZone = new GeoBox(topLeft, bottomRight);
-
-                                        // Crea una lista de coordenadas para el MapPolygon
-                                        List<GeoCoordinates> polygonCoordinates = new ArrayList<>();
-                                        polygonCoordinates.add(topLeft);
-                                        polygonCoordinates.add(new GeoCoordinates(topLeft.latitude, bottomRight.longitude));
-                                        polygonCoordinates.add(bottomRight);
-                                        polygonCoordinates.add(new GeoCoordinates(bottomRight.latitude, topLeft.longitude));
-
-                                        // Crea un GeoPolygon a partir de las coordenadas
-                                        GeoPolygon geoPolygon = null;
-                                        try {
-                                            geoPolygon = new GeoPolygon(polygonCoordinates);
-                                        } catch (InstantiationErrorException e) {
-                                            Log.e("Prueba", "Error al crear la zona de evitación: " + e.error.name());
-                                        }
-
-                                        // Crea un MapPolygon con un color de relleno y un ancho de borde
-                                        Color fillColor = new Color(0.8f, 0.0f, 0.0f, 0.5f); // Rojo semi-transparente
-                                        MapPolygon mapPolygon = new MapPolygon(geoPolygon, fillColor);
-
-                                        // Agrega el MapPolygon a la escena del mapa
-                                        mapView.getMapScene().addMapPolygon(mapPolygon);
-
-                                        // Agrega las zonas de evitación a las opciones
-                                        avoidanceZones.add(avoidanceZone);
-
-                                        // Agrega las zonas de evitación a las opciones de enrutamiento
-                                        routingOptions.avoidanceOptions.avoidBoundingBoxAreas = avoidanceZones;*/
-                                        // GEOPOLYGON
-                                        /*List<GeoPolygon> avoidanceZones = new ArrayList<>();
-
-                                        // Define la zona de evitación con forma de polígono (ajusta las coordenadas según sea necesario)
-                                        List<GeoCoordinates> polygonZone = new ArrayList<>();
-                                        GeoCoordinates punto1 = new GeoCoordinates(21.121899, -101.592983);
-                                        GeoCoordinates punto2 = new GeoCoordinates(21.114376, -101.589591);
-                                        GeoCoordinates punto3 = new GeoCoordinates(21.103029, -101.576860);
-                                        polygonZone.add(punto1);
-                                        polygonZone.add(punto2);
-                                        polygonZone.add(punto3);
-                                        GeoPolygon polygonZone1 = null;
-                                        try {
-                                            polygonZone1 = new GeoPolygon(polygonZone);
-                                        } catch (InstantiationErrorException e) {
-                                            Log.e("Prueba", "Error al crear la zona de evitación: " + e.error.name());
-                                        }
-                                        // Crea un objeto MapPolygon con uncolor de relleno y un ancho de borde
-                                        Color fillColor = new Color(0.8f, 0.0f, 0.0f, 0.5f); // Rojo semi-transparente
-                                        MapPolygon mapPolygon = new MapPolygon(polygonZone1, fillColor);
-
-                                        // Agrega el MapPolygon a la escena del mapa
-                                        mapView.getMapScene().addMapPolygon(mapPolygon);
-                                        avoidanceZones.add(polygonZone1);
-
-                                        // Agrega las zonas de evitación a las opciones de enrutamiento
-                                        routingOptions.avoidanceOptions.avoidPolygonAreas.add(polygonZone1);*/
-                                        // ROADFEAUTURES
-                                        /**
-                                         * CARPOOL_LANE: Carriles para vehículos compartidos.
-                                         * CONTROLLED_ACCESS_HIGHWAY: Autopistas de acceso controlado.
-                                         * DIRT_ROAD: Caminos de tierra.
-                                         * FERRY: Transbordadores.
-                                         * HIGHWAY: Autopistas.
-                                         * PARK: Parques.
-                                         * RAMP: Rampas de acceso o salida de autopistas.
-                                         * ROUNDABOUT: Rotondas.
-                                         * TOLL_ROAD: Carreteras de peaje.
-                                         * TUNNEL: Túneles.
-                                         * URBAN: Áreas urbanas.
-                                         * */
-                                        /*List<RoadFeatures> roadFeaturesToAvoid = new ArrayList<>();
-                                        roadFeaturesToAvoid.add(RoadFeatures.FERRY);
-                                        roadFeaturesToAvoid.add(RoadFeatures.U_TURNS);
-                                        roadFeaturesToAvoid.add(RoadFeatures.SEASONAL_CLOSURE);
-
-                                        // Agrega las características de carretera a las opciones de evitación
-                                        routingOptions.avoidanceOptions.roadFeatures = roadFeaturesToAvoid;*/
-                                        // ZONECATEGORY
-                                        /*List<ZoneCategory>zoneCategoriesToAvoid = new ArrayList<>();
-                                        zoneCategoriesToAvoid.add(ZoneCategory.ENVIRONMENTAL);
-                                        // ... agrega más categorías de zona que deseas evitar ...
-
-                                        // Agrega las categorías de zona a las opciones de evitación
-                                        routingOptions.avoidanceOptions.zoneCategories = zoneCategoriesToAvoid;*/
-                                        // COUNTRYCODE
-                                        /*List<CountryCode> countriesToAvoid = new ArrayList<>();
-                                        countriesToAvoid.add(CountryCode.US);
-                                        countriesToAvoid.add(CountryCode.CA);
-                                        // ... agrega más países que deseas evitar ...
-
-                                        // Agrega los países a las opciones de evitación
-                                        routingOptions.avoidanceOptions.countries = countriesToAvoid;*/
-                                        // SEGMENT REFERENCES
-                                        /*// Define el nombre de la carretera que deseas evitar
-                                        String carreteraAEvita = "Eje Metropolitano Leon Silao"; // Reemplaza con el nombre de la carretera que deseas evitar
-
-                                        // Crea una consulta de texto
-                                        TextQuery textQuery = new TextQuery(carreteraAEvita,new TextQuery.Area(new GeoCoordinates(21.107097,-101.581266))); // Ajusta las coordenadas a la ubicación aproximada de la carretera
-
-                                        // Crea opciones de búsqueda
-                                        SearchOptions searchOptions = new SearchOptions();
-                                        searchOptions.maxItems=1; // Solo necesitamos el primer resultado
-
-                                        // Realiza la búsqueda
-                                        searchEngine.search(textQuery, searchOptions, (searchError, items) -> {
-                                            if (searchError != null) {
-                                                // Maneja el error de búsqueda
-                                                Log.e("Error", "Error al buscar la carretera: " + searchError.name());
-                                                return;
-                                            }
-
-                                            if (items != null && !items.isEmpty()) {
-                                                // Obtiene el primer resultado de la búsqueda
-                                                Place place = items.get(0);
-                                                Log.e("Prueba", "La dirección encontrada es: "+place.getAddress().addressText);
-
-                                                // Obtiene los IDs de segmento de la geometría de la carretera
-                                                List<SegmentReference> segmentReferences = obtenerSegmentReferences(place);
-                                                routingOptions.avoidanceOptions.segments = segmentReferences;
-                                            }
-                                        });*/
                                         // Calculate the route
                                         routingEngine.calculateRoute(
                                                 waypoints,
@@ -450,29 +267,80 @@ public class RoutingExample {
                                                     public void onRouteCalculated(@Nullable RoutingError routingError, @Nullable List<Route> routes) {
                                                         // Check if route calculation was successful
                                                         if (routingError == null) {
+                                                            List<Waypoint> waypoints = new ArrayList<>();
+                                                            waypoints.add(startWaypoint);
                                                             // Get the first route from the list
                                                             route = routes.get(0);
-                                                            // Show route on map
-                                                            showRouteOnMap(route);
-                                                            // Show route details
-                                                            showRouteDetails(route, false);
-                                                            //logRouteRailwayCrossingDetails(route);
-                                                            //logRouteSectionDetails(route);
-                                                            //logRouteViolations(route);
-                                                            //logTollDetails(route);
-                                                            // Calcular la extensión de la ruta
-                                                            GeoBox geoBox = calculateRouteGeoBox(route);
-                                                            // Calcular el centro del GeoBox
-                                                            GeoCoordinates center = calculateGeoBoxCenter(geoBox);
-                                                            // Configurar la cámara para que se ajuste a la extensión de la ruta
-                                                            //camara.setTarget(center);
-                                                            camara.lookAt(geoBox, new GeoOrientationUpdate(center.latitude, center.longitude));
-                                                            // Ajustar el nivel de zoom para que toda la ruta sea visible en el mapa
-                                                            //camara.setZoomLevel(adjustZoomLevel(geoBox));
-                                                            //animateZoom(adjustZoomLevel(geoBox));
+                                                            if (puntos.size() > 0) {
+                                                                double routeLength = route.getLengthInMeters();
+                                                                GeoPolyline polyline = route.getGeometry();
+                                                                double threshold = routeLength * 0.5; // 50% de la longitud de la ruta
+                                                                if(threshold > 10000){
+                                                                    threshold = 10000;
+                                                                }
+                                                                // Crea una lista de pares (waypoint, distancia)
+                                                                List<Pair<Waypoint, Double>> waypointDistances = new ArrayList<>();
+                                                                for (GeoCoordinates punto : puntos) {
+                                                                    addCircleMapMarker(punto, R.drawable.red_dot);
+                                                                    double distanceToStart = punto.distanceTo(startGeoCoordinates);
+                                                                    double distanceToDestination = punto.distanceTo(destinationGeoCoordinates);
+                                                                    double distanceToPolyne = distanceToPolyline(punto,polyline);
+                                                                    if (distanceToPolyne <= threshold || distanceToStart <= threshold || distanceToDestination <= threshold) {
+                                                                        waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToStart));
+                                                                    }
+                                                                }
+                                                                // Ordena la lista de pares por distancia al punto intermedio
+                                                                waypointDistances.sort((p1, p2) -> Double.compare(p1.second, p2.second));
+
+                                                                // Agrega los waypoints ordenados a la lista final
+                                                                for (Pair<Waypoint, Double> pair : waypointDistances) {
+                                                                    waypoints.add(pair.first);
+                                                                }
+                                                                waypoints.add(destinationWaypoint);
+                                                            } else {
+                                                                // Create a list of Waypoints
+                                                                waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
+                                                            }
+//                                                            waypoints = new ArrayList<>(Arrays.asList(startWaypoint, destinationWaypoint));
+                                                            // Calculate the route
+                                                            routingEngine.calculateRoute(
+                                                                    waypoints,
+                                                                    routingOptions,
+                                                                    new CalculateRouteCallback() {
+                                                                        @Override
+                                                                        public void onRouteCalculated(@Nullable RoutingError routingError, @Nullable List<Route> routes) {
+                                                                            // Check if route calculation was successful
+                                                                            if (routingError == null) {
+                                                                                // Get the first route from the list
+                                                                                route = routes.get(0);
+
+                                                                                // Show route on map
+                                                                                showRouteOnMap(route);
+                                                                                // Show route details
+                                                                                showRouteDetails(route, false);
+                                                                                //logRouteRailwayCrossingDetails(route);
+                                                                                //logRouteSectionDetails(route);
+                                                                                //logRouteViolations(route);
+                                                                                //logTollDetails(route);
+                                                                                // Calcular la extensión de la ruta
+                                                                                GeoBox geoBox = calculateRouteGeoBox(route);
+                                                                                // Calcular el centro del GeoBox
+                                                                                GeoCoordinates center = calculateGeoBoxCenter(geoBox);
+                                                                                // Configurar la cámara para que se ajuste a la extensión de la ruta
+                                                                                //camara.setTarget(center);
+                                                                                camara.lookAt(geoBox, new GeoOrientationUpdate(center.latitude, center.longitude));
+                                                                                // Ajustar el nivel de zoom para que toda la ruta sea visible en el mapa
+                                                                                //camara.setZoomLevel(adjustZoomLevel(geoBox));
+                                                                                //animateZoom(adjustZoomLevel(geoBox));
+                                                                            } else {
+                                                                                // Show error message
+                                                                                showDialog("Error mientras se calculaba la segunda ruta:", routingError.toString());
+                                                                            }
+                                                                        }
+                                                                    });
                                                         } else {
                                                             // Show error message
-                                                            showDialog("Error mientras se calculaba la ruta:", routingError.toString());
+                                                            showDialog("Error mientras se calculaba la primer ruta:", routingError.toString());
                                                         }
                                                     }
                                                 });
@@ -1036,5 +904,61 @@ public class RoutingExample {
         }
 
         return intermediatePoints;
+    }
+    /*public static double distanceToPolyline(GeoCoordinates point, GeoPolyline polyline) {
+        double minDistance = Double.MAX_VALUE;
+        List<GeoCoordinates> vertices = polyline.vertices;
+
+        for (int i = 0; i < vertices.size() - 1; i++) {
+            GeoCoordinates start = vertices.get(i);
+            GeoCoordinates end = vertices.get(i + 1);
+            double distance = distanceToSegment(point, start, end);
+            minDistance = Math.min(minDistance, distance);
+        }
+
+        return minDistance;
+    }private static double distanceToSegment(GeoCoordinates point, GeoCoordinates start, GeoCoordinates end) {
+        double lat1 = Math.toRadians(start.latitude);
+        double lon1 = Math.toRadians(start.longitude);
+        double lat2 = Math.toRadians(end.latitude);
+        double lon2 = Math.toRadians(end.longitude);
+        double lat3 = Math.toRadians(point.latitude);
+        double lon3 = Math.toRadians(point.longitude);
+
+        double y = Math.sin(lon3 - lon1) * Math.cos(lat3);
+        double x = Math.cos(lat1) * Math.sin(lat3) - Math.sin(lat1) * Math.cos(lat3) * Math.cos(lon3 - lon1);
+        double bearing1 = Math.atan2(y, x);
+
+        y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+        x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+        double bearing2 = Math.atan2(y, x);
+
+        double angle = bearing2 - bearing1;
+        if (angle < 0) {
+            angle += 2 * Math.PI;
+        }
+
+        double distance = Math.asin(Math.sin(lat1) * Math.sin(lat3) +
+                Math.cos(lat1) * Math.cos(lat3) * Math.cos(lon3 - lon1)) * 6371000; // Earth radius in meters
+
+        double distanceToSegment = distance * Math.sin(angle);
+        return Math.abs(distanceToSegment);
+    }*/
+    public static double distanceToPolyline(GeoCoordinates point, GeoPolyline polyline) {
+        double minDistance = Double.MAX_VALUE;
+        GeoCoordinates closestPoint = null;
+        List<GeoCoordinates> vertices = polyline.vertices;
+
+        // Encuentra el vértice más cercano al punto dado
+        for (GeoCoordinates vertex : vertices) {
+            double distance = point.distanceTo(vertex);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = vertex;
+            }
+        }
+
+        // Devuelve la distancia al punto más cercano
+        return minDistance;
     }
 }
