@@ -252,19 +252,43 @@ public class RoutingExample {
                                             } catch (InstantiationErrorException e) {
                                                 //throw new RuntimeException(e);
                                             }
-                                            // Umbral de distancia en metros
-                                            double threshold = 4000000;
+                                            // Calcula el punto intermedio
+                                            GeoCoordinates midPoint = new GeoCoordinates(
+                                                    (startCoordinates.latitude + destinationCoordinates.latitude) / 2,
+                                                    (startCoordinates.longitude + destinationCoordinates.longitude) / 2
+                                            );
+                                            // ...
+                                            double routeLength = startCoordinates.distanceTo(destinationCoordinates);
+                                            int intermediatePointsCount = (int) Math.round(routeLength / 5000);
+                                            double threshold = routeLength * 0.5; // 50% de la longitud de la ruta
+                                            if(threshold > 10000){
+                                                threshold = 10000;
+                                            }
+
+                                            // Obtiene puntos intermedios
+                                            List<GeoCoordinates> intermediatePoints = getIntermediatePoints(routeLine, intermediatePointsCount ,routeLength); // Divide la ruta en 3 segmentos
+
                                             // Crea una lista de pares (waypoint, distancia)
                                             List<Pair<Waypoint, Double>> waypointDistances = new ArrayList<>();
                                             for (GeoCoordinates punto : puntos) {
                                                 addCircleMapMarker(punto, R.drawable.red_dot);
-                                                double distanceToRoute = distanceToPolyline(punto, routeLine);
-                                                if (distanceToRoute <= threshold) {
-                                                    double distanceToMidPoint = punto.distanceTo(startGeoCoordinates);
-                                                    waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToMidPoint));
+                                                double distanceToStart = punto.distanceTo(startGeoCoordinates);
+                                                double distanceToDestination = punto.distanceTo(destinationGeoCoordinates);
+                                                if (intermediatePoints.size() > 0){
+                                                    for (GeoCoordinates intermediatePoint : intermediatePoints) {
+                                                        double distanceToIntermediate = punto.distanceTo(intermediatePoint);
+                                                        if (distanceToIntermediate <= threshold || distanceToStart <= threshold || distanceToDestination <= threshold) {
+                                                            waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToStart));
+                                                            break; // Si el punto está cerca de un punto intermedio, no es necesario verificar los demás
+                                                        }
+                                                    }
+                                                }else{
+                                                    if (distanceToStart <= threshold || distanceToDestination <= threshold) {
+                                                        waypointDistances.add(new Pair<>(new Waypoint(punto), distanceToStart));
+                                                        break; // Si el punto está cerca de un punto intermedio, no es necesario verificar los demás
+                                                    }
                                                 }
                                             }
-
                                             // Ordena la lista de pares por distancia al punto intermedio
                                             waypointDistances.sort((p1, p2) -> Double.compare(p1.second, p2.second));
 
@@ -987,108 +1011,30 @@ public class RoutingExample {
         animator.start();
     }
 
-    /*private void startGuidance(Route route) {
-        try {
-            // Without a route set, this starts tracking mode.
-            visualNavigator = new VisualNavigator();
-        } catch (InstantiationErrorException e) {
-            throw new RuntimeException("Initialization of VisualNavigator failed: " + e.error.name());
-        }
+    private List<GeoCoordinates> getIntermediatePoints(GeoPolyline routeLine, int numSegments,double routeLength) {
+        List<GeoCoordinates> intermediatePoints = new ArrayList<>();
+        List<GeoCoordinates> vertices = routeLine.vertices;
+        double segmentLength = routeLength / numSegments;
 
-        // This enables a navigation view including a rendered navigation arrow.
-        visualNavigator.startRendering(mapView);
-
-        // Hook in one of the many listeners. Here we set up a listener to get instructions on the maneuvers to take while driving.
-        // For more details, please check the "Navigation" example app and the Developer Guide.
-        *//*visualNavigator.setEventTextListener(new EventTextListener() {
-            @Override
-            public void onEventTextUpdated(@NonNull EventText eventText) {
-                // We use the built-in TTS engine to synthesize the localized text as audio.
-                voiceAssistant.speak(eventText.text);
-                // We can optionally retrieve the associated maneuver. The details will be null if the text contains
-                // non-maneuver related information, such as for speed camera warnings.
-                if (eventText.type == TextNotificationType.MANEUVER && eventText.maneuverNotificationDetails != null) {
-                    Maneuver maneuver = eventText.maneuverNotificationDetails.maneuver;
-                }
-            }
-        });*//*
-
-        // Set a route to follow. This leaves tracking mode.
-        visualNavigator.setRoute(route);
-
-        // VisualNavigator acts as LocationListener to receive location updates directly from a location provider.
-        // Any progress along the route is a result of getting a new location fed into the VisualNavigator.
-        setupLocationSource(visualNavigator, route);
-    }
-
-    private void setupLocationSource(LocationListener locationListener, Route route) {
-        try {
-            // Provides fake GPS signals based on the route geometry.
-            locationSimulator = new LocationSimulator(route, new LocationSimulatorOptions());
-        } catch (InstantiationErrorException e) {
-            throw new RuntimeException("Initialization of LocationSimulator failed: " + e.error.name());
-        }
-
-        locationSimulator.setListener(locationListener);
-        locationSimulator.start();
-    }*/
-    // Función para obtener los IDs de segmento de un objeto Place
-    private List<SegmentReference> obtenerSegmentReferences(Place place) {
-        List<SegmentReference> segmentReferences = new ArrayList<>();
-        List<GeoCoordinates> accessPoints = place.getAccessPoints();
-
-        if (accessPoints != null) {
-            for (GeoCoordinates accessPoint : accessPoints) {
-                // Crea un SegmentReference para cada punto de acceso
-                // Utiliza el ID del lugar como una aproximación del ID del segmento
-                // Ajusta los valores de offset para cubrir una pequeña porción de la carretera
-                double offsetStart = 0.45; // Ajusta este valor según sea necesario
-                double offsetEnd = 0.55; // Ajusta este valor según sea necesario
-                SegmentReference segmentReference = new SegmentReference(place.getId(), TravelDirection.BIDIRECTIONAL, offsetStart, offsetEnd);
-                segmentReferences.add(segmentReference);
-            }
-        }
-
-        return segmentReferences;
-    }
-
-    private static double distanceToPolyline(GeoCoordinates point, GeoPolyline polyline) {
-        double minDistance = Double.MAX_VALUE;
-        List<GeoCoordinates> vertices = polyline.vertices;
-
+        double distanceCovered = 0;
         for (int i = 0; i < vertices.size() - 1; i++) {
             GeoCoordinates start = vertices.get(i);
             GeoCoordinates end = vertices.get(i + 1);
-            double distance = distanceToSegment(point, start, end);
-            minDistance = Math.min(minDistance, distance);
-        }
-        return minDistance;
-    }
-    private static double distanceToSegment(GeoCoordinates point, GeoCoordinates start, GeoCoordinates end) {
-        double lat1 = Math.toRadians(start.latitude);
-        double lon1 = Math.toRadians(start.longitude);
-        double lat2 = Math.toRadians(end.latitude);
-        double lon2 = Math.toRadians(end.longitude);
-        double lat3 = Math.toRadians(point.latitude);
-        double lon3 = Math.toRadians(point.longitude);
+            double segmentDistance = start.distanceTo(end);
 
-        double y = Math.sin(lon3 - lon1) * Math.cos(lat3);
-        double x = Math.cos(lat1) * Math.sin(lat3) - Math.sin(lat1) * Math.cos(lat3) * Math.cos(lon3 - lon1);
-        double bearing1 = Math.atan2(y, x);
+            while (distanceCovered + segmentDistance >= segmentLength) {
+                double ratio = (segmentLength - distanceCovered) / segmentDistance;
+                double lat = start.latitude + ratio * (end.latitude - start.latitude);
+                double lon = start.longitude + ratio * (end.longitude - start.longitude);
+                intermediatePoints.add(new GeoCoordinates(lat, lon));
 
-        y = Math.sin(lon2 - lon1) * Math.cos(lat2);
-        x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-        double bearing2 = Math.atan2(y, x);
+                distanceCovered = 0;
+                segmentLength += segmentLength; // Avanza al siguiente segmento
+            }
 
-        double angle = bearing2 - bearing1;
-        if (angle < 0) {
-            angle += 2 * Math.PI;
+            distanceCovered += segmentDistance;
         }
 
-        double distance = Math.asin(Math.sin(lat1) * Math.sin(lat3) +
-                Math.cos(lat1) * Math.cos(lat3) * Math.cos(lon3 - lon1)) * 6371000; // Earth radius in meters
-
-        double distanceToSegment = distance * Math.sin(angle);
-        return Math.abs(distanceToSegment);
+        return intermediatePoints;
     }
 }
